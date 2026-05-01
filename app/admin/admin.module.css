@@ -1,0 +1,273 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f3ff;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  background: linear-gradient(180deg, #3b0764, #6a1b9a);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  flex-shrink: 0;
+}
+
+.sidebarLogo {
+  font-size: 1.15rem;
+  font-weight: 800;
+  padding: 0 24px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 16px;
+}
+
+.sidebarNav {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 0 12px;
+  gap: 4px;
+}
+
+.navItem, .navItemActive {
+  display: block;
+  padding: 11px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: rgba(255,255,255,0.75);
+  font-weight: 500;
+  font-size: 0.92rem;
+  transition: all 0.2s;
+}
+
+.navItem:hover { background: rgba(255,255,255,0.1); color: white; }
+.navItemActive { background: rgba(255,255,255,0.18); color: white; font-weight: 700; }
+
+.sidebarFooter {
+  padding: 16px 12px 0;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: 8px;
+}
+
+.adminName {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 2px;
+  padding: 0 4px;
+}
+
+.adminEmail {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.55);
+  margin: 0 0 12px;
+  padding: 0 4px;
+}
+
+.logoutBtn {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(239,68,68,0.2);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+.logoutBtn:hover { background: rgba(239,68,68,0.35); }
+
+/* MAIN */
+.main {
+  flex: 1;
+  padding: 36px 40px;
+  overflow-y: auto;
+}
+
+/* PAGE HEADER */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.pageHeader h1 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0 0 4px;
+}
+
+.pageHeader p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* PRIMARY BUTTON */
+.primaryBtn {
+  padding: 11px 24px;
+  background: linear-gradient(135deg, #7b1fa2, #c2188b);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(123,31,162,0.28);
+  transition: opacity 0.2s, transform 0.15s;
+  text-decoration: none;
+  display: inline-block;
+}
+.primaryBtn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* CARD */
+.card {
+  background: white;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 2px 8px rgba(106,27,154,0.08);
+}
+
+/* TABLE */
+.tableWrapper { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.table th {
+  text-align: left; padding: 10px 14px; color: #9ca3af;
+  font-weight: 600; font-size: 0.78rem; text-transform: uppercase;
+  border-bottom: 1px solid #f3f4f6;
+}
+.table td {
+  padding: 13px 14px; border-bottom: 1px solid #f9fafb;
+  color: #374151; vertical-align: middle;
+}
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: #faf5ff; }
+
+/* BADGES */
+.badge {
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 0.75rem; font-weight: 700; white-space: nowrap;
+}
+.badgeGreen  { background: #d1fae5; color: #065f46; }
+.badgeYellow { background: #fef3c7; color: #92400e; }
+.badgeBlue   { background: #dbeafe; color: #1e40af; }
+.badgePurple { background: #ede9fe; color: #5b21b6; }
+.badgeRed    { background: #fee2e2; color: #991b1b; }
+
+.statusDot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 50%; margin-right: 6px;
+}
+
+/* ACTION BUTTONS */
+.actionBtns { display: flex; gap: 8px; }
+
+.editBtn {
+  padding: 6px 14px; border-radius: 8px; border: 1.5px solid #e9d5ff;
+  background: white; color: #7b1fa2; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.editBtn:hover { background: #7b1fa2; color: white; }
+
+.deleteBtn {
+  padding: 6px 14px; border-radius: 8px; border: 1.5px solid #fecaca;
+  background: white; color: #ef4444; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.deleteBtn:hover { background: #ef4444; color: white; }
+
+.statusSelect {
+  padding: 6px 10px; border-radius: 8px; border: 1.5px solid #e9d5ff;
+  font-size: 0.82rem; color: #7b1fa2; font-weight: 600;
+  cursor: pointer; background: white; outline: none;
+}
+
+/* EMPTY */
+.empty { text-align: center; color: #9ca3af; padding: 48px 0; font-size: 1rem; }
+
+/* LOADING */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; font-size: 1.1rem; color: #7b1fa2;
+}
+
+/* MODAL OVERLAY */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; padding: 24px;
+}
+
+.modal {
+  background: white; border-radius: 20px; padding: 36px;
+  width: 100%; max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  max-height: 90vh; overflow-y: auto;
+}
+
+.modal h2 {
+  font-size: 1.3rem; font-weight: 800; color: #1a1a2e;
+  margin: 0 0 24px;
+}
+
+.formGroup {
+  display: flex; flex-direction: column; margin-bottom: 16px;
+}
+
+.formGroup label {
+  font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 6px;
+}
+
+.formGroup input,
+.formGroup textarea,
+.formGroup select {
+  padding: 11px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px;
+  font-size: 0.95rem; font-family: inherit; outline: none;
+  background: #fafafa; color: #1a1a2e; transition: border-color 0.2s;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus,
+.formGroup select:focus {
+  border-color: #7b1fa2;
+  background: white;
+}
+
+.modalBtns {
+  display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end;
+}
+
+.cancelBtn {
+  padding: 10px 22px; border-radius: 10px; border: 1.5px solid #e5e7eb;
+  background: white; color: #6b7280; font-size: 0.92rem; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.cancelBtn:hover { background: #f9fafb; }
+
+/* PRODUCT IMAGE IN TABLE */
+.productThumb {
+  width: 52px; height: 52px; border-radius: 10px;
+  object-fit: cover; display: block;
+}
+
+/* STOCK INDICATOR */
+.stockLow  { color: #ef4444; font-weight: 700; }
+.stockOk   { color: #10b981; font-weight: 700; }
+
+/* ORDER ID */
+.orderId { font-weight: 700; color: #7b1fa2; font-family: monospace; font-size: 0.85rem; }
+.priceCell { font-weight: 700; color: #1a1a2e; }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { padding: 24px 16px; }
+}
