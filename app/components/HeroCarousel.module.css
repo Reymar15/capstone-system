@@ -6,6 +6,7 @@
   min-height: 560px;
   overflow: hidden;
   background: #1a0a2e;
+  flex-shrink: 0;
 }
 
 /* SLIDE */
