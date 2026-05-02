@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { ShoppingCart, LayoutDashboard, ClipboardList, User, LogOut } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import styles from "../page.module.css";
@@ -33,10 +34,7 @@ export default function Navbar() {
       <ul className={styles.navLinks}>
         {navLinks.map((link) => (
           <li key={link.href}>
-            <Link
-              href={link.href}
-              className={path === link.href ? styles.activeLink : ""}
-            >
+            <Link href={link.href} className={path === link.href ? styles.activeLink : ""}>
               {link.label}
             </Link>
           </li>
@@ -46,10 +44,8 @@ export default function Navbar() {
       <div className={styles.navRight}>
         {/* CART ICON */}
         <Link href="/order" className={styles.cartLink}>
-          🛒
-          {totalItems > 0 && (
-            <span className={styles.cartBadge}>{totalItems}</span>
-          )}
+          <ShoppingCart size={22} />
+          {totalItems > 0 && <span className={styles.cartBadge}>{totalItems}</span>}
         </Link>
 
         {/* AUTH */}
@@ -58,20 +54,24 @@ export default function Navbar() {
             <span className={styles.userName}>Hi, {user.firstName}!</span>
             {user.role === "admin" && (
               <Link href="/admin/dashboard" className={styles.loginBtn}>
+                <LayoutDashboard size={15} style={{ marginRight: 4, verticalAlign: "middle" }} />
                 Dashboard
               </Link>
             )}
             {user.role === "customer" && (
               <Link href="/my-orders" className={styles.loginBtn}>
+                <ClipboardList size={15} style={{ marginRight: 4, verticalAlign: "middle" }} />
                 My Orders
               </Link>
             )}
             {user.role === "customer" && (
               <Link href="/profile" className={styles.loginBtn}>
+                <User size={15} style={{ marginRight: 4, verticalAlign: "middle" }} />
                 Profile
               </Link>
             )}
             <button className={styles.logoutNavBtn} onClick={handleLogout}>
+              <LogOut size={15} style={{ marginRight: 4, verticalAlign: "middle" }} />
               Logout
             </button>
           </div>

@@ -88,10 +88,11 @@
 .inputIcon {
   position: absolute;
   left: 14px;
-  font-size: 1rem;
   pointer-events: none;
   color: #aaa;
   transition: color 0.2s;
+  display: flex;
+  align-items: center;
 }
 
 .inputWrapper:focus-within .inputIcon {

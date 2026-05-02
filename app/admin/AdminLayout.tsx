@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { LayoutDashboard, PackageOpen, ShoppingBag, Globe, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import styles from "./admin.module.css";
 
@@ -11,10 +12,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const path = usePathname();
 
   const navItems = [
-    { href: "/admin/dashboard", label: "📊 Dashboard" },
-    { href: "/admin/orders", label: "📦 Orders" },
-    { href: "/admin/products", label: "🍡 Products" },
-    { href: "/", label: "🌐 View Site" },
+    { href: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+    { href: "/admin/orders", label: "Orders", icon: <PackageOpen size={18} /> },
+    { href: "/admin/products", label: "Products", icon: <ShoppingBag size={18} /> },
+    { href: "/", label: "View Site", icon: <Globe size={18} /> },
   ];
 
   return (
@@ -28,6 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               href={item.href}
               className={path === item.href ? styles.navItemActive : styles.navItem}
             >
+              {item.icon}
               {item.label}
             </Link>
           ))}
@@ -36,7 +38,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className={styles.adminName}>{user?.firstName} {user?.lastName}</p>
           <p className={styles.adminEmail}>{user?.email}</p>
           <button className={styles.logoutBtn} onClick={async () => { await logout(); router.push("/login"); }}>
-            🚪 Logout
+            <LogOut size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
+            Logout
           </button>
         </div>
       </aside>
