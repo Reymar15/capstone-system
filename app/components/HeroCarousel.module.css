@@ -125,6 +125,11 @@
   box-shadow: 0 4px 20px rgba(123, 31, 162, 0.45);
   transition: opacity 0.2s, transform 0.15s;
   letter-spacing: 0.3px;
+  width: fit-content;
+  max-width: 240px;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .orderBtn:hover {
@@ -246,7 +251,8 @@
 
   .orderBtn,
   .storyBtn {
-    width: 200px;
+    width: fit-content;
+    max-width: min(240px, 100%);
     text-align: center;
   }
 }
