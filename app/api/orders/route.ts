@@ -33,12 +33,6 @@ type OrderRow = {
   [key: string]: unknown;
 };
 
-type UserNameRow = {
-  id: string;
-  first_name?: string | null;
-  last_name?: string | null;
-};
-
 export async function GET(req: NextRequest) {
   const token = req.headers.get("authorization")?.split(" ")[1];
   const user = token ? verifyToken(token) : null;
@@ -55,24 +49,12 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: "Failed to fetch orders." }, { status: 500 });
 
   const orderRows = (data || []) as OrderRow[];
-  const userIds = Array.from(new Set(orderRows.map((o) => o.user_id).filter(Boolean)));
-  const { data: users } = userIds.length
-    ? await supabase.from("users").select("id, first_name, last_name").in("id", userIds)
-    : { data: [] };
 
-  const userNames = new Map(
-    ((users || []) as UserNameRow[]).map((u) => [
-      u.id,
-      `${u.first_name || ""} ${u.last_name || ""}`.trim(),
-    ])
-  );
-
-  // Map order_items to items and snake_case to camelCase for frontend compatibility.
   const orders = orderRows.map((o) => ({
     ...o,
-    customerName: (o.customer_name || o.customerName || userNames.get(o.user_id) || "Customer").trim(),
-    paymentStatus: o.payment_status || "Pending",
-    createdAt: o.created_at || o.createdAt || (/^\d+$/.test(String(o.id)) ? new Date(Number(o.id)).toISOString() : ""),
+    customerName: (o.customer_name || o.customerName || "").trim(),
+    paymentStatus: o.payment_status || o.paymentStatus || "Pending",
+    createdAt: o.created_at || o.createdAt || "",
     items: o.order_items || [],
   }));
   return NextResponse.json(orders);
