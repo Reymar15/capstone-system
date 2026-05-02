@@ -1,51 +1,54 @@
 /* ── ROOT LAYOUT ─────────────────────────────────────────── */
 .layout {
   display: flex;
-  height: 100vh;
   width: 100%;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
   background: #f5f3ff;
 }
 
 /* ── SIDEBAR ─────────────────────────────────────────────── */
 .sidebar {
-  width: 260px;
-  min-width: 260px;
+  width: 270px;
+  min-width: 270px;
   height: 100vh;
+  position: sticky;
+  top: 0;
   background: linear-gradient(180deg, #3b0764 0%, #6a1b9a 100%);
   color: white;
   display: flex;
   flex-direction: column;
-  padding: 28px 0 20px;
+  overflow-x: hidden;
   overflow-y: auto;
   flex-shrink: 0;
   box-sizing: border-box;
 }
 
 .sidebarLogo {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 800;
-  padding: 0 24px 24px;
+  padding: 28px 24px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  margin-bottom: 16px;
   white-space: nowrap;
   letter-spacing: -0.2px;
+  flex-shrink: 0;
 }
 
 .sidebarNav {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  padding: 0 12px;
   gap: 4px;
+  padding: 16px 12px 0;
+  flex-shrink: 0;
 }
 
 .navItem,
 .navItemActive {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 11px 16px;
+  gap: 12px;
+  padding: 12px 16px;
   border-radius: 10px;
   text-decoration: none;
   color: rgba(255, 255, 255, 0.72);
@@ -53,6 +56,7 @@
   font-size: 0.92rem;
   transition: background 0.2s, color 0.2s;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .navItem:hover {
@@ -67,9 +71,10 @@
 }
 
 .sidebarFooter {
-  padding: 16px 16px 0;
+  margin-top: auto;
+  padding: 16px 16px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  margin-top: 8px;
+  flex-shrink: 0;
 }
 
 .adminName {
@@ -101,10 +106,9 @@
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  text-align: left;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   transition: background 0.2s;
   box-sizing: border-box;
 }
@@ -117,8 +121,8 @@
 .main {
   flex: 1;
   min-width: 0;
-  height: 100vh;
-  overflow-y: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
   padding: 36px 40px;
   box-sizing: border-box;
 }
@@ -199,9 +203,7 @@
   font-weight: 600;
 }
 
-.viewAll:hover {
-  text-decoration: underline;
-}
+.viewAll:hover { text-decoration: underline; }
 
 /* ── STAT CARD (shared) ──────────────────────────────────── */
 .statCard {
@@ -214,7 +216,7 @@
   box-shadow: 0 2px 8px rgba(106, 27, 154, 0.08);
 }
 
-.statIcon { font-size: 2rem; }
+.statIcon  { font-size: 2rem; }
 .statLabel { font-size: 0.82rem; color: #9ca3af; margin: 0 0 4px; font-weight: 500; }
 .statValue { font-size: 1.6rem; font-weight: 800; color: #1a1a2e; margin: 0; }
 
@@ -275,11 +277,7 @@
 }
 
 /* ── ACTION BUTTONS ──────────────────────────────────────── */
-.actionBtns {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+.actionBtns { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .editBtn {
   padding: 6px 14px;
@@ -442,11 +440,6 @@
 
 /* ── RESPONSIVE ──────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .sidebar {
-    display: none;
-  }
-
-  .main {
-    padding: 24px 16px;
-  }
+  .sidebar { display: none; }
+  .main { padding: 24px 16px; }
 }
