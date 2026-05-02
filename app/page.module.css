@@ -354,10 +354,10 @@
 
 /* FOOTER */
 .footer {
-  background: linear-gradient(90deg, #6a1b9a, #8e24aa); /* exact gradient vibe from screenshot */
+  background: linear-gradient(90deg, #6a1b9a, #8e24aa);
   color: white;
   padding: 60px 60px 40px;
-  margin-top: 60px;
+  margin-top: auto;
 }
 
 .footerGrid {
