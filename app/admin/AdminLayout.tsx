@@ -11,8 +11,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const path = usePathname();
 
-  const navItems = [
+  const mainNav = [
     { href: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+  ];
+
+  const manageNav = [
     { href: "/admin/orders", label: "Manage Orders", icon: <PackageOpen size={18} /> },
     { href: "/admin/products", label: "Manage Products", icon: <ShoppingBag size={18} /> },
     { href: "/", label: "View Website", icon: <Globe size={18} /> },
@@ -22,9 +25,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className={styles.layout}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarLogo}>🎋 Kzen's Admin</div>
+        <nav className={styles.sidebarNav}>
+          {mainNav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={path === item.href ? styles.navItemActive : styles.navItem}
+            >
+              {item.icon}
+              {item.label}
+            </Link>
+          ))}
+        </nav>
         <p className={styles.navLabel}>Manage</p>
         <nav className={styles.sidebarNav}>
-          {navItems.map((item) => (
+          {manageNav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
