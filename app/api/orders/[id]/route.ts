@@ -3,6 +3,17 @@ import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 import { sendOrderStatusEmail } from "@/lib/email";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapOrder(o: any) {
+  return {
+    ...o,
+    customerName: o.customer_name || "",
+    paymentStatus: o.payment_status || "Pending",
+    createdAt: o.created_at || "",
+    items: o.order_items || [],
+  };
+}
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const token = req.headers.get("authorization")?.split(" ")[1];
@@ -13,20 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
   if (user.role !== "admin" && order.user_id !== user.id) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  const { data: customer } = await supabase
-    .from("users")
-    .select("first_name, last_name")
-    .eq("id", order.user_id)
-    .single();
-  const customerName = `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim();
-
-  return NextResponse.json({
-    ...order,
-    customerName: (order.customer_name || order.customerName || customerName || "Customer").trim(),
-    paymentStatus: order.payment_status || "Pending",
-    createdAt: order.created_at || order.createdAt || (/^\d+$/.test(String(order.id)) ? new Date(Number(order.id)).toISOString() : ""),
-    items: order.order_items || [],
-  });
+  return NextResponse.json(mapOrder(order));
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -44,9 +42,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (body.status) updateData.status = body.status;
   if (body.paymentStatus) updateData.payment_status = body.paymentStatus;
 
-  const { data: updated } = await supabase.from("orders").update(updateData).eq("id", id).select("*, order_items(*)").single();
+  const { data: updated } = await supabase
+    .from("orders")
+    .update(updateData)
+    .eq("id", id)
+    .select("*, order_items(*)")
+    .single();
 
-  // Send email if status changed
   const notifyStatuses = ["Preparing", "Ready", "Completed", "Cancelled"];
   if (body.status && body.status !== oldOrder.status && notifyStatuses.includes(body.status)) {
     try {
@@ -57,11 +59,5 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     } catch {}
   }
 
-  return NextResponse.json({
-    ...updated,
-    customerName: (updated?.customer_name || updated?.customerName || "Customer").trim(),
-    paymentStatus: updated?.payment_status || "Pending",
-    createdAt: updated?.created_at || updated?.createdAt || (/^\d+$/.test(String(updated?.id)) ? new Date(Number(updated?.id)).toISOString() : ""),
-    items: updated?.order_items || [],
-  });
+  return NextResponse.json(mapOrder(updated));
 }
