@@ -23,10 +23,6 @@ export default function AboutPage() {
       </nav>
 
       <section className={styles.aboutPage}>
-        <div className={styles.aboutHero}>
-          <h1>About Us</h1>
-          <p>The story behind every bamboo tube of love.</p>
-        </div>
 
         <div className={styles.aboutContent}>
           <div className={styles.aboutText}>
