@@ -22,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className={styles.layout}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarLogo}>🎋 Kzen's Admin</div>
+        <p className={styles.navLabel}>Manage</p>
         <nav className={styles.sidebarNav}>
           {navItems.map((item) => (
             <Link
