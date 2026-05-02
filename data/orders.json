@@ -1,0 +1,112 @@
+[
+  {
+    "id": "1777618547335",
+    "userId": "1777617920537",
+    "customerName": "Reymar Reconalla",
+    "phone": "09423325166",
+    "address": "doljo fatima",
+    "payment": "cod",
+    "notes": "",
+    "items": [
+      {
+        "productId": "Classic Puto Bumbong",
+        "name": "Classic Puto Bumbong",
+        "price": 100,
+        "qty": 2,
+        "image": "/classic.jpg"
+      }
+    ],
+    "total": 200,
+    "status": "Completed",
+    "paymentStatus": "Pending",
+    "createdAt": "2026-05-01T06:55:47.335Z"
+  },
+  {
+    "id": "1777620678518",
+    "userId": "1777617920537",
+    "customerName": "hershey anne",
+    "phone": "09423325166",
+    "address": "labangon cebu city",
+    "payment": "cod",
+    "notes": "ampingi",
+    "items": [
+      {
+        "productId": "Party Tray (12 pcs)",
+        "name": "Party Tray (12 pcs)",
+        "price": 550,
+        "qty": 3,
+        "image": "/deluxe.jpg"
+      }
+    ],
+    "total": 1650,
+    "status": "Ready",
+    "paymentStatus": "Pending",
+    "createdAt": "2026-05-01T07:31:18.518Z"
+  },
+  {
+    "id": "1777628370516",
+    "userId": "1777628217799",
+    "customerName": "Reymar Riconalla",
+    "phone": "09423325166",
+    "address": "Bulacao, Cebu City",
+    "payment": "cod",
+    "notes": "ampingi",
+    "items": [
+      {
+        "productId": "Cheese Overload",
+        "name": "Cheese Overload",
+        "price": 120,
+        "qty": 2,
+        "image": "/classic.jpg"
+      }
+    ],
+    "total": 240,
+    "status": "Ready",
+    "paymentStatus": "Pending",
+    "createdAt": "2026-05-01T09:39:30.516Z"
+  },
+  {
+    "id": "1777630468680",
+    "userId": "1777617920537",
+    "customerName": "Hershey",
+    "phone": "09423325166",
+    "address": "labangnon, cebu city",
+    "payment": "cod",
+    "notes": "ampingi",
+    "items": [
+      {
+        "productId": "Ube Swirl",
+        "name": "Ube Swirl",
+        "price": 130,
+        "qty": 1,
+        "image": "/deluxe.jpg"
+      }
+    ],
+    "total": 130,
+    "status": "Preparing",
+    "paymentStatus": "Pending",
+    "createdAt": "2026-05-01T10:14:28.680Z"
+  },
+  {
+    "id": "1777701112926",
+    "userId": "1777700804737",
+    "customerName": "Earl Zafra",
+    "phone": "09317992349",
+    "address": "Talisay, City",
+    "payment": "cod",
+    "notes": "",
+    "items": [
+      {
+        "productId": "Classic Puto Bumbong",
+        "name": "Classic Puto Bumbong",
+        "price": 100,
+        "qty": 1,
+        "image": "/classic.jpg"
+      }
+    ],
+    "total": 100,
+    "status": "Cancelled",
+    "paymentStatus": "Pending",
+    "createdAt": "2026-05-02T05:51:52.926Z"
+  }
+]

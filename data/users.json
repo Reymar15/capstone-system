@@ -1,0 +1,67 @@
+[
+  {
+    "id": "1",
+    "firstName": "Admin",
+    "lastName": "Kzen",
+    "email": "admin@kzen.com",
+    "password": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "admin",
+    "phone": "+63 912345678",
+    "securityQuestion": "What is your favorite food?",
+    "securityAnswer": "puto bumbong",
+    "emailVerified": true,
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "1777616288700",
+    "firstName": "Reymar",
+    "lastName": "Reconalla",
+    "email": "reymarreconalla15@gmail.com",
+    "password": "$2b$10$oX5s/3N0rxxRQW4NgVEXuuT1k3m1Ochh.QJKypQTpax/0O.zDe82.",
+    "role": "customer",
+    "phone": "09423325166",
+    "securityQuestion": "What is your favorite food?",
+    "securityAnswer": "puto bumbong",
+    "emailVerified": true,
+    "createdAt": "2026-05-01T06:18:08.700Z"
+  },
+  {
+    "id": "1777617920537",
+    "firstName": "Hershey Anne",
+    "lastName": "Damulo",
+    "email": "hersheyannedamulo@gmail.com",
+    "password": "$2b$10$k59PTuco.XhpIskQ2BnZsuZAlZD6T.1.Qe1YzU.NaOX4ygkHwK/NS",
+    "role": "customer",
+    "phone": "09863826534",
+    "securityQuestion": "What city were you born in?",
+    "securityAnswer": "cebu city",
+    "emailVerified": true,
+    "createdAt": "2026-05-01T06:45:20.537Z"
+  },
+  {
+    "id": "1777628217799",
+    "firstName": "Reymar",
+    "lastName": "Riconalla",
+    "email": "reymarreconalla@gmail.com",
+    "password": "$2b$10$XMxjtKNMg/kvB.L2RUCbseYUTPLleQ/uQR/qjqjlWS4dSybWq7kza",
+    "role": "customer",
+    "phone": "09423325166",
+    "securityQuestion": "",
+    "securityAnswer": "",
+    "emailVerified": true,
+    "createdAt": "2026-05-01T09:36:57.800Z"
+  },
+  {
+    "id": "1777700804737",
+    "firstName": "Earl",
+    "lastName": "Zafra",
+    "email": "totszafra21@gmail.com",
+    "password": "$2b$10$EvsROLbnSBR8uwSv2XCr0eQXW74l4lhpMdNByHTlPF7W5deQZK8dm",
+    "role": "customer",
+    "phone": "09317992349",
+    "securityQuestion": "",
+    "securityAnswer": "",
+    "emailVerified": true,
+    "createdAt": "2026-05-02T05:46:44.737Z"
+  }
+]

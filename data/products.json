@@ -1,0 +1,62 @@
+[
+  {
+    "id": "1",
+    "name": "Classic Puto Bumbong",
+    "description": "Traditional purple rice cake topped with butter, coconut and muscovado sugar.",
+    "price": 100,
+    "category": "Classic",
+    "image": "/classic.jpg",
+    "stock": 50,
+    "available": true
+  },
+  {
+    "id": "2",
+    "name": "Special Deluxe",
+    "description": "Soft puto bumbong topped with cheese, butter and coconut.",
+    "price": 100,
+    "category": "Special",
+    "image": "/deluxe.jpg",
+    "stock": 40,
+    "available": true
+  },
+  {
+    "id": "3",
+    "name": "Cheese Overload",
+    "description": "Extra generous cheese topping with butter and coconut flakes.",
+    "price": 120,
+    "category": "Special",
+    "image": "/classic.jpg",
+    "stock": 30,
+    "available": true
+  },
+  {
+    "id": "4",
+    "name": "Ube Swirl",
+    "description": "Purple rice cake with ube halaya filling and coconut topping.",
+    "price": 130,
+    "category": "Ube",
+    "image": "/deluxe.jpg",
+    "stock": 25,
+    "available": true
+  },
+  {
+    "id": "5",
+    "name": "Latik Special",
+    "description": "Topped with rich latik (coconut caramel) and muscovado sugar.",
+    "price": 115,
+    "category": "Classic",
+    "image": "/classic.jpg",
+    "stock": 35,
+    "available": true
+  },
+  {
+    "id": "6",
+    "name": "Party Tray (12 pcs)",
+    "description": "Perfect for celebrations. Assorted flavors in one tray.",
+    "price": 550,
+    "category": "Special",
+    "image": "/deluxe.jpg",
+    "stock": 15,
+    "available": true
+  }
+]
