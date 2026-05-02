@@ -24,6 +24,20 @@ const STATUS_BADGE: Record<string, string> = {
   Ready: styles.badgePurple, Completed: styles.badgeGreen, Cancelled: styles.badgeRed,
 };
 
+const formatOrderDate = (createdAt: string, id: string) => {
+  const fallbackDate = /^\d+$/.test(id) ? new Date(Number(id)) : null;
+  const date = createdAt ? new Date(createdAt) : fallbackDate;
+
+  if (!date || Number.isNaN(date.getTime())) return "No date";
+
+  return date.toLocaleDateString("en-PH", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 export default function AdminDashboard() {
   const { user, token } = useAuth();
   const router = useRouter();
@@ -56,7 +70,11 @@ export default function AdminDashboard() {
   if (loading) return <div className={styles.loading}>Loading dashboard...</div>;
 
   const recentOrders = [...orders]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => {
+      const aTime = new Date(a.createdAt || Number(a.id)).getTime();
+      const bTime = new Date(b.createdAt || Number(b.id)).getTime();
+      return bTime - aTime;
+    })
     .slice(0, 8);
 
   return (
@@ -65,7 +83,7 @@ export default function AdminDashboard() {
       <div className={styles.pageHeader}>
         <div>
           <h1>Dashboard</h1>
-          <p>Welcome back, <strong>{user?.firstName}</strong>! Here's what's happening today.</p>
+          <p>Welcome back, <strong>{user?.firstName}</strong>! Here&apos;s what&apos;s happening today.</p>
         </div>
         <Link href="/admin/orders" className={styles.primaryBtn}>View All Orders</Link>
       </div>
@@ -149,7 +167,7 @@ export default function AdminDashboard() {
               {recentOrders.map((o) => (
                 <tr key={o.id}>
                   <td className={styles.orderId}>#{o.id.slice(-6)}</td>
-                  <td><strong>{o.customerName}</strong></td>
+                  <td><strong>{o.customerName?.trim() || "Customer"}</strong></td>
                   <td style={{ fontSize: "0.8rem", color: "#6b7280", maxWidth: 160 }}>
                     {o.items.map((i) => `${i.name} x${i.qty}`).join(", ")}
                   </td>
@@ -166,7 +184,7 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td style={{ fontSize: "0.78rem", color: "#9ca3af", whiteSpace: "nowrap" }}>
-                    {new Date(o.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {formatOrderDate(o.createdAt, o.id)}
                   </td>
                   <td>
                     <select
