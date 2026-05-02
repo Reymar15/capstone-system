@@ -5,20 +5,56 @@ import Image from "next/image";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../page.module.css";
 import orderStyles from "./order.module.css";
+
+type PlacedOrder = {
+  id: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  payment: string;
+  notes: string;
+  items: { name: string; price: number; qty: number; image: string }[];
+  total: number;
+  status: string;
+  paymentStatus: string;
+  createdAt: string;
+};
+
+const paymentLabel: Record<string, string> = {
+  cod: "Cash on Delivery",
+  gcash: "GCash",
+  maya: "Maya",
+};
 
 export default function OrderPage() {
   const { cart, removeFromCart, updateQty, clearCart, totalPrice } = useCart();
   const { user, token } = useAuth();
   const { success, error: toastError, info } = useToast();
   const router = useRouter();
-  const [placed, setPlaced] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ customerName: "", phone: "", address: "", payment: "", notes: "" });
+
+  // Auto-fill delivery details from user profile
+  useEffect(() => {
+    if (!user || !token) return;
+    fetch("/api/user/profile", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((profile) => {
+        setForm((prev) => ({
+          ...prev,
+          customerName: `${profile.firstName} ${profile.lastName}`.trim(),
+          phone: profile.phone || "",
+          address: profile.address || "",
+        }));
+      })
+      .catch(() => {});
+  }, [user, token]);
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -47,10 +83,14 @@ export default function OrderPage() {
       toastError(msg);
       return;
     }
+
+    const data = await res.json();
     clearCart();
     success("Order placed! We'll prepare it fresh for you. 🎉");
-    setPlaced(true);
+    setPlacedOrder(data);
   };
+
+  const handlePrint = () => window.print();
 
   return (
     <div>
@@ -77,14 +117,105 @@ export default function OrderPage() {
       </nav>
 
       <div className={orderStyles.wrapper}>
-        {placed ? (
-          <div className={orderStyles.successBox}>
-            <div className={orderStyles.successIcon}>🎉</div>
-            <h2>Order Placed!</h2>
-            <p>Salamat! Your order has been received. We'll prepare it fresh for you.</p>
-            {user && <Link href="/my-orders" className={orderStyles.backBtn}>Track My Order</Link>}
-            <Link href="/menu" className={orderStyles.backBtn} style={{ marginLeft: 12 }}>Order Again</Link>
+
+        {/* ── RECEIPT ── */}
+        {placedOrder ? (
+          <div className={orderStyles.receiptWrapper}>
+            {/* PRINT BUTTON (hidden on print) */}
+            <div className={orderStyles.receiptActions}>
+              <button className={orderStyles.printBtn} onClick={handlePrint}>🖨️ Print Receipt</button>
+              <Link href="/my-orders" className={orderStyles.trackBtn}>📦 Track Order</Link>
+              <Link href="/menu" className={orderStyles.orderAgainBtn}>🛒 Order Again</Link>
+            </div>
+
+            {/* RECEIPT CARD */}
+            <div className={orderStyles.receipt} id="receipt">
+              {/* HEADER */}
+              <div className={orderStyles.receiptHeader}>
+                <div className={orderStyles.receiptLogo}>🎋</div>
+                <h2>Kzen's Puto Bumbong</h2>
+                <p>Cebu City, Philippines</p>
+                <p>📞 +63 912345678 | 📧 kzen@example.com</p>
+              </div>
+
+              <div className={orderStyles.receiptDivider} />
+
+              {/* ORDER INFO */}
+              <div className={orderStyles.receiptMeta}>
+                <div className={orderStyles.receiptMetaItem}>
+                  <span>Order No.</span>
+                  <strong>#{placedOrder.id.slice(-8).toUpperCase()}</strong>
+                </div>
+                <div className={orderStyles.receiptMetaItem}>
+                  <span>Date</span>
+                  <strong>{new Date(placedOrder.createdAt).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</strong>
+                </div>
+                <div className={orderStyles.receiptMetaItem}>
+                  <span>Time</span>
+                  <strong>{new Date(placedOrder.createdAt).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" })}</strong>
+                </div>
+                <div className={orderStyles.receiptMetaItem}>
+                  <span>Status</span>
+                  <strong className={orderStyles.receiptStatus}>{placedOrder.status}</strong>
+                </div>
+              </div>
+
+              <div className={orderStyles.receiptDivider} />
+
+              {/* CUSTOMER INFO */}
+              <div className={orderStyles.receiptSection}>
+                <h4>Customer Details</h4>
+                <div className={orderStyles.receiptRow}><span>Name</span><span>{placedOrder.customerName}</span></div>
+                <div className={orderStyles.receiptRow}><span>Phone</span><span>{placedOrder.phone}</span></div>
+                <div className={orderStyles.receiptRow}><span>Address</span><span>{placedOrder.address}</span></div>
+                <div className={orderStyles.receiptRow}><span>Payment</span><span>{paymentLabel[placedOrder.payment] || placedOrder.payment}</span></div>
+                {placedOrder.notes && <div className={orderStyles.receiptRow}><span>Notes</span><span>{placedOrder.notes}</span></div>}
+              </div>
+
+              <div className={orderStyles.receiptDivider} />
+
+              {/* ITEMS */}
+              <div className={orderStyles.receiptSection}>
+                <h4>Order Items</h4>
+                <div className={orderStyles.receiptItemsHeader}>
+                  <span>Item</span><span>Qty</span><span>Price</span><span>Subtotal</span>
+                </div>
+                {placedOrder.items.map((item, i) => (
+                  <div className={orderStyles.receiptItem} key={i}>
+                    <span>{item.name}</span>
+                    <span>x{item.qty}</span>
+                    <span>₱{item.price}</span>
+                    <span>₱{item.price * item.qty}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className={orderStyles.receiptDivider} />
+
+              {/* TOTAL */}
+              <div className={orderStyles.receiptTotal}>
+                <span>TOTAL AMOUNT</span>
+                <span>₱{placedOrder.total}</span>
+              </div>
+
+              <div className={orderStyles.receiptDivider} />
+
+              {/* PAYMENT STATUS */}
+              <div className={orderStyles.receiptPayStatus}>
+                <span>Payment Status:</span>
+                <span className={placedOrder.paymentStatus === "Paid" ? orderStyles.paid : orderStyles.pending}>
+                  {placedOrder.paymentStatus}
+                </span>
+              </div>
+
+              {/* FOOTER */}
+              <div className={orderStyles.receiptFooter}>
+                <p>🎋 Thank you for ordering!</p>
+                <p>Salamat sa imong suporta sa Kzen's Puto Bumbong.</p>
+              </div>
+            </div>
           </div>
+
         ) : (
           <>
             <h1 className={orderStyles.pageTitle}>Your Order</h1>

@@ -129,13 +129,51 @@
 }
 .primaryBtn:hover { opacity: 0.9; transform: translateY(-1px); }
 
-/* CARD */
-.card {
+/* SECTION */
+.section {
   background: white;
   border-radius: 20px;
   padding: 28px;
   box-shadow: 0 2px 8px rgba(106,27,154,0.08);
 }
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sectionHeader h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.viewAll {
+  color: #7b1fa2;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.viewAll:hover { text-decoration: underline; }
+
+/* STAT CARD (shared) */
+.statCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(106,27,154,0.08);
+}
+
+.statIcon { font-size: 2rem; }
+.statLabel { font-size: 0.82rem; color: #9ca3af; margin: 0 0 4px; font-weight: 500; }
+.statValue { font-size: 1.6rem; font-weight: 800; color: #1a1a2e; margin: 0; }
 
 /* TABLE */
 .tableWrapper { overflow-x: auto; }

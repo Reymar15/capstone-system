@@ -2,109 +2,77 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
+import { useToast } from "../context/ToastContext";
+import Navbar from "../components/Navbar";
 import styles from "../page.module.css";
 
-const menuItems = [
-  {
-    name: "Classic Puto Bumbong",
-    desc: "Traditional purple rice cake topped with butter, coconut and muscovado sugar.",
-    price: 100,
-    img: "/classic.jpg",
-    category: "Classic",
-    badge: "Best Seller",
-    rating: "⭐⭐⭐⭐⭐",
-  },
-  {
-    name: "Special Deluxe",
-    desc: "Soft puto bumbong topped with cheese, butter and coconut.",
-    price: 100,
-    img: "/deluxe.jpg",
-    category: "Special",
-    badge: "Popular",
-    rating: "⭐⭐⭐⭐⭐",
-  },
-  {
-    name: "Cheese Overload",
-    desc: "Extra generous cheese topping with butter and coconut flakes.",
-    price: 120,
-    img: "/classic.jpg",
-    category: "Special",
-    badge: null,
-    rating: "⭐⭐⭐⭐",
-  },
-  {
-    name: "Ube Swirl",
-    desc: "Purple rice cake with ube halaya filling and coconut topping.",
-    price: 130,
-    img: "/deluxe.jpg",
-    category: "Ube",
-    badge: "New",
-    rating: "⭐⭐⭐⭐⭐",
-  },
-  {
-    name: "Latik Special",
-    desc: "Topped with rich latik (coconut caramel) and muscovado sugar.",
-    price: 115,
-    img: "/classic.jpg",
-    category: "Classic",
-    badge: null,
-    rating: "⭐⭐⭐⭐",
-  },
-  {
-    name: "Party Tray (12 pcs)",
-    desc: "Perfect for celebrations. Assorted flavors in one tray.",
-    price: 550,
-    img: "/deluxe.jpg",
-    category: "Special",
-    badge: "Great Value",
-    rating: "⭐⭐⭐⭐⭐",
-  },
-];
+type Product = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image: string;
+  stock: number;
+  available: boolean;
+  badge?: string;
+};
 
 const categories = ["All", "Classic", "Special", "Ube"];
 
 export default function MenuPage() {
   const [active, setActive] = useState("All");
-  const { addToCart, totalItems } = useCart();
-  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { addToCart } = useCart();
+  const { success, warning } = useToast();
 
-  const filtered =
-    active === "All" ? menuItems : menuItems.filter((i) => i.category === active);
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then(setProducts)
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleOrder = (item: typeof menuItems[0]) => {
-    addToCart({ name: item.name, price: item.price, img: item.img });
-    router.push("/order");
+  const filtered = (active === "All" ? products : products.filter((p) => p.category === active))
+    .filter((p) =>
+      search.trim() === "" ||
+      p.name.toLowerCase().includes(search.toLowerCase())
+    );
+
+  const handleAddToCart = (item: Product) => {
+    if (!item.available) {
+      warning(`"${item.name}" is currently unavailable.`);
+      return;
+    }
+    addToCart({ name: item.name, price: item.price, img: item.image });
+    success(`"${item.name}" added to cart! 🛒`);
   };
 
   return (
     <main>
-      <nav className={styles.navbar}>
-        <Link href="/" className={styles.logoLink}>
-          <h2 className={styles.logo}>Puto Bumbong</h2>
-        </Link>
-        <ul className={styles.navLinks}>
-          <li><Link href="/">Home</Link></li>
-          <li><Link href="/menu" className={styles.activeLink}>Menu</Link></li>
-          <li><Link href="/about">About</Link></li>
-          <li><Link href="/contact">Contact</Link></li>
-          <li>
-            <Link href="/order" className={styles.cartLink}>
-              🛒 {totalItems > 0 && <span className={styles.cartBadge}>{totalItems}</span>}
-            </Link>
-          </li>
-        </ul>
-        <div className={styles.navAuth}>
-          <Link href="/login" className={styles.loginBtn}>Login</Link>
-          <Link href="/signup" className={styles.signupBtn}>Sign Up</Link>
-        </div>
-      </nav>
+      <Navbar />
 
       <section className={styles.menuPage}>
         <h1>Our Menu</h1>
         <p>All items are made fresh daily using authentic ingredients.</p>
+
+        {/* SEARCH BAR */}
+        <div className={styles.menuSearch}>
+          <span className={styles.menuSearchIcon}>🔍</span>
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className={styles.menuSearchClear} onClick={() => setSearch("")}>✕</button>
+          )}
+        </div>
 
         <div className={styles.filters}>
           {categories.map((cat) => (
@@ -118,27 +86,64 @@ export default function MenuPage() {
           ))}
         </div>
 
-        <div className={styles.products}>
-          {filtered.map((item) => (
-            <div className={styles.card} key={item.name}>
-              <div className={styles.imgWrapper}>
-                <Image src={item.img} alt={item.name} fill className={styles.productImg} />
-                {item.badge && <span className={styles.badge}>{item.badge}</span>}
-              </div>
-              <div className={styles.cardBody}>
-                <div className={styles.cardRating}>{item.rating}</div>
-                <h3>{item.name}</h3>
-                <p>{item.desc}</p>
-                <div className={styles.priceRow}>
-                  <span>₱{item.price}</span>
-                  <button className={styles.cartBtn} onClick={() => handleOrder(item)}>
-                    🛒 Order Now
-                  </button>
+        {loading ? (
+          <p style={{ textAlign: "center", color: "#9ca3af", padding: "60px 0" }}>Loading menu...</p>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <p style={{ fontSize: "1.1rem", color: "#9ca3af", marginBottom: 12 }}>
+              {search ? `No products found for "${search}"` : "No products available."}
+            </p>
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                style={{ padding: "8px 20px", borderRadius: 8, border: "1.5px solid #e9d5ff", background: "white", color: "#7b1fa2", fontWeight: 600, cursor: "pointer" }}
+              >
+                Clear Search
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className={styles.products}>
+            {filtered.map((item) => (
+              <div
+                className={`${styles.card} ${!item.available ? styles.cardUnavailable : ""}`}
+                key={item.id}
+              >
+                <div className={styles.imgWrapper}>
+                  <Image src={item.image} alt={item.name} fill className={styles.productImg} />
+                  {item.badge && <span className={styles.badge}>{item.badge}</span>}
+
+                  {/* AVAILABILITY BADGE */}
+                  <span className={`${styles.availBadge} ${item.available ? styles.availBadgeGreen : styles.availBadgeRed}`}>
+                    {item.available ? "✅ Available" : "❌ Unavailable"}
+                  </span>
+                </div>
+
+                <div className={styles.cardBody}>
+                  <div className={styles.cardRating}>⭐⭐⭐⭐⭐</div>
+                  <h3>{item.name}</h3>
+                  <p>{item.description}</p>
+
+                  {/* STOCK INFO */}
+                  <p className={`${styles.stockInfo} ${item.stock <= 5 ? styles.stockLow : styles.stockOk}`}>
+                    {item.available ? `${item.stock} pcs available` : "Out of stock"}
+                  </p>
+
+                  <div className={styles.priceRow}>
+                    <span>₱{item.price}</span>
+                    <button
+                      className={`${styles.cartBtn} ${!item.available ? styles.cartBtnDisabled : ""}`}
+                      onClick={() => handleAddToCart(item)}
+                      disabled={!item.available}
+                    >
+                      {item.available ? "🛒 Add to Cart" : "Unavailable"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <footer className={styles.footer}>

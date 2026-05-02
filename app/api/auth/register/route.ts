@@ -3,19 +3,18 @@ import bcrypt from "bcryptjs";
 import { readDB, writeDB, User } from "@/lib/db";
 import { signToken } from "@/lib/auth";
 import { validateRegister, hasErrors } from "@/lib/validation";
+import { sendVerificationEmail } from "@/lib/email";
+import { saveCode } from "@/lib/verificationStore";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const errors = validateRegister(body);
 
-  if (!body.securityQuestion) errors.securityQuestion = "Please select a security question.";
-  if (!body.securityAnswer?.trim()) errors.securityAnswer = "Security answer is required.";
-
   if (hasErrors(errors)) {
     return NextResponse.json({ error: Object.values(errors)[0], errors }, { status: 400 });
   }
 
-  const { firstName, lastName, email, password, phone, securityQuestion, securityAnswer } = body;
+  const { firstName, lastName, email, password, phone } = body;
   const users = readDB<User>("users.json");
 
   if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
@@ -31,12 +30,23 @@ export async function POST(req: NextRequest) {
     password: hashed,
     role: "customer",
     phone: phone?.trim() || "",
-    securityQuestion,
-    securityAnswer: securityAnswer.trim().toLowerCase(),
+    securityQuestion: "",
+    securityAnswer: "",
+    emailVerified: false,
     createdAt: new Date().toISOString(),
   };
 
   writeDB("users.json", [...users, newUser]);
+
+  // Send verification email
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  saveCode(newUser.email, code);
+
+  try {
+    await sendVerificationEmail(newUser.email, newUser.firstName, code);
+  } catch {
+    // Don't block registration if email fails
+  }
 
   const token = signToken({ id: newUser.id, email: newUser.email, role: "customer", firstName: newUser.firstName });
   const res = NextResponse.json({

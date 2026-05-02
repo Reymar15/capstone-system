@@ -38,7 +38,7 @@ export default function MyOrdersPage() {
   const paymentLabel: Record<string, string> = { cod: "Cash on Delivery", gcash: "GCash", maya: "Maya" };
 
   return (
-    <div>
+    <div style={{ background: "#7b1fa2", minHeight: "100vh" }}>
       <nav className={styles.navbar}>
         <Link href="/" className={styles.logoLink}>
           <h2 className={styles.logo}>Puto Bumbong</h2>

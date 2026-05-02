@@ -2,12 +2,22 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-type AuthUser = {
+export type AuthUser = {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   role: "admin" | "customer";
+};
+
+export type RegisterData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone: string;
+  securityQuestion: string;
+  securityAnswer: string;
 };
 
 type AuthContextType = {
@@ -19,16 +29,6 @@ type AuthContextType = {
   loading: boolean;
 };
 
-type RegisterData = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  phone: string;
-  securityQuestion: string;
-  securityAnswer: string;
-};
-
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -37,43 +37,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    const savedUser = localStorage.getItem("user");
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+    try {
+      const savedToken = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+      if (savedToken && savedUser) {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+      }
+    } catch {
+      // ignore
     }
     setLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<string | null> => {
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) return data.error;
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
-    return null;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) return data.error || "Login failed.";
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+      return null;
+    } catch {
+      return "Network error. Please try again.";
+    }
   };
 
   const register = async (formData: RegisterData): Promise<string | null> => {
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-    const data = await res.json();
-    if (!res.ok) return data.error;
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
-    return null;
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (!res.ok) return data.error || "Registration failed.";
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+      return null;
+    } catch {
+      return "Network error. Please try again.";
+    }
   };
 
   const logout = async () => {
@@ -81,7 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user");
     setToken(null);
     setUser(null);
-    await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
   };
 
   return (

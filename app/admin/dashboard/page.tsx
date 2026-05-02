@@ -6,11 +6,22 @@ import { useAuth } from "../../context/AuthContext";
 import Link from "next/link";
 import AdminLayout from "../AdminLayout";
 import styles from "../admin.module.css";
+import dash from "./dashboard.module.css";
 
 type Order = {
   id: string; customerName: string; total: number;
   status: string; paymentStatus: string; createdAt: string;
   items: { name: string; qty: number }[];
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  Pending: "#f59e0b", Preparing: "#3b82f6",
+  Ready: "#8b5cf6", Completed: "#10b981", Cancelled: "#ef4444",
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  Pending: styles.badgeYellow, Preparing: styles.badgeBlue,
+  Ready: styles.badgePurple, Completed: styles.badgeGreen, Cancelled: styles.badgeRed,
 };
 
 export default function AdminDashboard() {
@@ -24,12 +35,13 @@ export default function AdminDashboard() {
     if (user.role !== "admin") { router.push("/"); return; }
     fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then(setOrders)
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
   }, [user, token, router]);
 
   const totalSales = orders.reduce((s, o) => s + o.total, 0);
   const pending = orders.filter((o) => o.status === "Pending").length;
+  const preparing = orders.filter((o) => o.status === "Preparing").length;
   const completed = orders.filter((o) => o.status === "Completed").length;
 
   const updateStatus = async (id: string, status: string) => {
@@ -41,53 +53,79 @@ export default function AdminDashboard() {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
   };
 
-  const statusColor: Record<string, string> = {
-    Pending: "#f59e0b", Preparing: "#3b82f6",
-    Ready: "#8b5cf6", Completed: "#10b981", Cancelled: "#ef4444",
-  };
+  if (loading) return <div className={styles.loading}>Loading dashboard...</div>;
 
-  if (loading) return <div className={styles.loading}>Loading...</div>;
+  const recentOrders = [...orders]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 8);
 
   return (
     <AdminLayout>
+      {/* HEADER */}
       <div className={styles.pageHeader}>
         <div>
           <h1>Dashboard</h1>
-          <p>Welcome back, {user?.firstName}!</p>
+          <p>Welcome back, <strong>{user?.firstName}</strong>! Here's what's happening today.</p>
+        </div>
+        <Link href="/admin/orders" className={styles.primaryBtn}>View All Orders</Link>
+      </div>
+
+      {/* STAT CARDS */}
+      <div className={dash.statsGrid}>
+        <div className={`${dash.statCard} ${dash.statSales}`}>
+          <div className={dash.statIconBox}>💰</div>
+          <div className={dash.statInfo}>
+            <p className={dash.statLabel}>Total Sales</p>
+            <h2 className={dash.statValue}>₱{totalSales.toLocaleString()}</h2>
+          </div>
+        </div>
+        <div className={`${dash.statCard} ${dash.statOrders}`}>
+          <div className={dash.statIconBox}>📦</div>
+          <div className={dash.statInfo}>
+            <p className={dash.statLabel}>Total Orders</p>
+            <h2 className={dash.statValue}>{orders.length}</h2>
+          </div>
+        </div>
+        <div className={`${dash.statCard} ${dash.statPending}`}>
+          <div className={dash.statIconBox}>⏳</div>
+          <div className={dash.statInfo}>
+            <p className={dash.statLabel}>Pending</p>
+            <h2 className={dash.statValue}>{pending}</h2>
+          </div>
+        </div>
+        <div className={`${dash.statCard} ${dash.statPreparing}`}>
+          <div className={dash.statIconBox}>👨‍🍳</div>
+          <div className={dash.statInfo}>
+            <p className={dash.statLabel}>Preparing</p>
+            <h2 className={dash.statValue}>{preparing}</h2>
+          </div>
+        </div>
+        <div className={`${dash.statCard} ${dash.statCompleted}`}>
+          <div className={dash.statIconBox}>✅</div>
+          <div className={dash.statInfo}>
+            <p className={dash.statLabel}>Completed</p>
+            <h2 className={dash.statValue}>{completed}</h2>
+          </div>
         </div>
       </div>
 
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <span className={styles.statIcon}>💰</span>
-          <div>
-            <p className={styles.statLabel}>Total Sales</p>
-            <h2 className={styles.statValue}>₱{totalSales.toLocaleString()}</h2>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statIcon}>📦</span>
-          <div>
-            <p className={styles.statLabel}>Total Orders</p>
-            <h2 className={styles.statValue}>{orders.length}</h2>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statIcon}>⏳</span>
-          <div>
-            <p className={styles.statLabel}>Pending</p>
-            <h2 className={styles.statValue}>{pending}</h2>
-          </div>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statIcon}>✅</span>
-          <div>
-            <p className={styles.statLabel}>Completed</p>
-            <h2 className={styles.statValue}>{completed}</h2>
-          </div>
-        </div>
+      {/* QUICK LINKS */}
+      <div className={dash.quickLinks}>
+        <Link href="/admin/orders" className={dash.quickCard}>
+          <span>📦</span>
+          <p>Manage Orders</p>
+        </Link>
+        <Link href="/admin/products" className={dash.quickCard}>
+          <span>🍡</span>
+          <p>Manage Products</p>
+        </Link>
+        <Link href="/" className={dash.quickCard}>
+          <span>🌐</span>
+          <p>View Website</p>
+        </Link>
       </div>
 
+      {/* RECENT ORDERS TABLE */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2>Recent Orders</h2>
@@ -103,15 +141,18 @@ export default function AdminDashboard() {
                 <th>Total</th>
                 <th>Payment</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th>Date</th>
+                <th>Update</th>
               </tr>
             </thead>
             <tbody>
-              {orders.slice(0, 8).map((o) => (
+              {recentOrders.map((o) => (
                 <tr key={o.id}>
                   <td className={styles.orderId}>#{o.id.slice(-6)}</td>
-                  <td>{o.customerName}</td>
-                  <td>{o.items.map((i) => `${i.name} x${i.qty}`).join(", ")}</td>
+                  <td><strong>{o.customerName}</strong></td>
+                  <td style={{ fontSize: "0.8rem", color: "#6b7280", maxWidth: 160 }}>
+                    {o.items.map((i) => `${i.name} x${i.qty}`).join(", ")}
+                  </td>
                   <td className={styles.priceCell}>₱{o.total}</td>
                   <td>
                     <span className={`${styles.badge} ${o.paymentStatus === "Paid" ? styles.badgeGreen : styles.badgeYellow}`}>
@@ -119,8 +160,13 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td>
-                    <span className={styles.statusDot} style={{ background: statusColor[o.status] }} />
-                    {o.status}
+                    <span className={`${styles.badge} ${STATUS_BADGE[o.status]}`}>
+                      <span className={styles.statusDot} style={{ background: STATUS_COLOR[o.status] }} />
+                      {o.status}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: "0.78rem", color: "#9ca3af", whiteSpace: "nowrap" }}>
+                    {new Date(o.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </td>
                   <td>
                     <select

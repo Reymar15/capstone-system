@@ -286,6 +286,49 @@
   transform: translateY(0);
 }
 
+/* AVAILABILITY */
+.availBadge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
+}
+
+.availBadgeGreen {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.availBadgeRed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.cardUnavailable {
+  opacity: 0.65;
+  filter: grayscale(40%);
+}
+
+.stockInfo {
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.stockLow { color: #ef4444; }
+.stockOk  { color: #10b981; }
+
+.cartBtnDisabled {
+  background: #d1d5db !important;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+}
+
 .menuBtn {
   display: inline-block;
   margin-top: 52px;
@@ -465,6 +508,41 @@
   align-items: center;
 }
 
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userMenu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.userName {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.92rem;
+}
+
+.logoutNavBtn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 2px solid #ef4444;
+  background: white;
+  color: #ef4444;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutNavBtn:hover {
+  background: #ef4444;
+  color: white;
+}
+
 .loginBtn {
   text-decoration: none;
   color: #7b1fa2;
@@ -556,6 +634,55 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+/* MENU SEARCH */
+.menuSearch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 480px;
+  margin: 0 auto 24px;
+}
+
+.menuSearchIcon {
+  position: absolute;
+  left: 14px;
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.menuSearch input {
+  width: 100%;
+  padding: 12px 40px 12px 42px;
+  border: 1.5px solid #e9d5ff;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  background: white;
+  color: #1a1a2e;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.menuSearch input:focus {
+  border-color: #7b1fa2;
+  box-shadow: 0 0 0 3px rgba(123,31,162,0.08);
+}
+
+.menuSearchClear {
+  position: absolute;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.menuSearchClear:hover { color: #ef4444; }
 
 /* CATEGORY FILTERS */
 .filters {

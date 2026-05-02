@@ -31,6 +31,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -65,7 +66,12 @@ export default function AdminOrders() {
   };
 
   const filters = ["All", "Pending", "Preparing", "Ready", "Completed", "Cancelled"];
-  const filtered = filter === "All" ? orders : orders.filter((o) => o.status === filter);
+  const filtered = (filter === "All" ? orders : orders.filter((o) => o.status === filter))
+    .filter((o) =>
+      search.trim() === "" ||
+      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
+      o.id.toLowerCase().includes(search.toLowerCase())
+    );
 
   const paymentLabel: Record<string, string> = { cod: "Cash on Delivery", gcash: "GCash", maya: "Maya" };
 
@@ -76,8 +82,24 @@ export default function AdminOrders() {
       <div className={styles.pageHeader}>
         <div>
           <h1>Orders</h1>
-          <p>{orders.length} total orders</p>
+          <p>{orders.length} total orders · {filtered.length} shown</p>
         </div>
+      </div>
+
+      {/* SEARCH BAR */}
+      <div style={{ marginBottom: 16 }}>
+        <input
+          type="text"
+          placeholder="🔍 Search by customer name or order ID..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: "100%", padding: "11px 16px", borderRadius: 10,
+            border: "1.5px solid #e9d5ff", fontSize: "0.92rem",
+            outline: "none", fontFamily: "inherit", background: "white",
+            boxSizing: "border-box", color: "#000000",
+          }}
+        />
       </div>
 
       {/* FILTER TABS */}
@@ -163,34 +185,34 @@ export default function AdminOrders() {
             <h2>Order #{selected.id.slice(-6)}</h2>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 20px", marginBottom: 20 }}>
-              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Customer</p><p style={{ margin: 0, fontWeight: 700 }}>{selected.customerName}</p></div>
-              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Phone</p><p style={{ margin: 0, fontWeight: 700 }}>{selected.phone}</p></div>
-              <div style={{ gridColumn: "1/-1" }}><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Address</p><p style={{ margin: 0, fontWeight: 700 }}>{selected.address}</p></div>
-              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Payment</p><p style={{ margin: 0, fontWeight: 700 }}>{paymentLabel[selected.payment] || selected.payment}</p></div>
-              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Date</p><p style={{ margin: 0, fontWeight: 700 }}>{new Date(selected.createdAt).toLocaleString("en-PH")}</p></div>
-              {selected.notes && <div style={{ gridColumn: "1/-1" }}><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Notes</p><p style={{ margin: 0 }}>{selected.notes}</p></div>}
+              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Customer</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{selected.customerName}</p></div>
+              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Phone</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{selected.phone}</p></div>
+              <div style={{ gridColumn: "1/-1" }}><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Address</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{selected.address}</p></div>
+              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Payment</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{paymentLabel[selected.payment] || selected.payment}</p></div>
+              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Date</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{new Date(selected.createdAt).toLocaleString("en-PH")}</p></div>
+              {selected.notes && <div style={{ gridColumn: "1/-1" }}><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Notes</p><p style={{ margin: 0, color: "#000000" }}>{selected.notes}</p></div>}
             </div>
 
             {/* ITEMS */}
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem", marginBottom: 16 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
-                  <th style={{ textAlign: "left", padding: "6px 0", color: "#9ca3af", fontWeight: 600, fontSize: "0.75rem" }}>Item</th>
-                  <th style={{ textAlign: "center", padding: "6px 0", color: "#9ca3af", fontWeight: 600, fontSize: "0.75rem" }}>Qty</th>
-                  <th style={{ textAlign: "right", padding: "6px 0", color: "#9ca3af", fontWeight: 600, fontSize: "0.75rem" }}>Subtotal</th>
+                  <th style={{ textAlign: "left", padding: "6px 0", color: "#000000", fontWeight: 600, fontSize: "0.75rem" }}>Item</th>
+                  <th style={{ textAlign: "center", padding: "6px 0", color: "#000000", fontWeight: 600, fontSize: "0.75rem" }}>Qty</th>
+                  <th style={{ textAlign: "right", padding: "6px 0", color: "#000000", fontWeight: 600, fontSize: "0.75rem" }}>Subtotal</th>
                 </tr>
               </thead>
               <tbody>
                 {selected.items.map((item, i) => (
                   <tr key={i} style={{ borderBottom: "1px solid #f9fafb" }}>
-                    <td style={{ padding: "8px 0" }}>{item.name}</td>
-                    <td style={{ textAlign: "center", padding: "8px 0" }}>x{item.qty}</td>
-                    <td style={{ textAlign: "right", padding: "8px 0", fontWeight: 700 }}>₱{item.price * item.qty}</td>
+                    <td style={{ padding: "8px 0", color: "#000000" }}>{item.name}</td>
+                    <td style={{ textAlign: "center", padding: "8px 0", color: "#000000" }}>x{item.qty}</td>
+                    <td style={{ textAlign: "right", padding: "8px 0", fontWeight: 700, color: "#000000" }}>₱{item.price * item.qty}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.1rem", marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: "1.1rem", marginBottom: 20, color: "#000000" }}>
               <span>Total</span><span style={{ color: "#7b1fa2" }}>₱{selected.total}</span>
             </div>
 

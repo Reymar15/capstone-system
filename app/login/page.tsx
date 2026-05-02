@@ -4,40 +4,37 @@ import Link from "next/link";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-import { validateLogin } from "@/lib/validation";
-import { useToast } from "../context/ToastContext";
 import styles from "../page.module.css";
 import authStyles from "../auth.module.css";
 
 function LoginForm() {
   const { login } = useAuth();
-  const { success, error: toastError } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || null;
 
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((p) => ({ ...p, [field]: e.target.value }));
-    setErrors((p) => ({ ...p, [field]: "" }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const clientErrors = validateLogin(form);
-    if (Object.keys(clientErrors).length > 0) { setErrors(clientErrors); return; }
+    setError("");
+
+    if (!email.trim()) { setError("Email is required."); return; }
+    if (!password) { setError("Password is required."); return; }
 
     setLoading(true);
-    const err = await login(form.email, form.password);
+    const err = await login(email.trim(), password);
     setLoading(false);
 
-    if (err) { setErrors({ general: err }); toastError(err); return; }
-    success("Welcome back! You are now logged in. 🎋");
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    router.push(redirectTo || (user.role === "admin" ? "/admin/dashboard" : "/"));
+    if (err) { setError(err); return; }
+
+    const saved = localStorage.getItem("user");
+    const user = saved ? JSON.parse(saved) : null;
+    router.push(redirectTo || (user?.role === "admin" ? "/admin/dashboard" : "/"));
   };
 
   return (
@@ -46,26 +43,48 @@ function LoginForm() {
       <h1>Welcome Back</h1>
       <p className={authStyles.subtitle}>Sign in to your account to continue</p>
 
-      {errors.general && <div className={authStyles.errorBox}>{errors.general}</div>}
+      {error && <div className={authStyles.errorBox}>{error}</div>}
 
-      <form onSubmit={handleSubmit} noValidate>
+      <form onSubmit={handleSubmit}>
         <div className={authStyles.formGroup}>
           <label htmlFor="email">Email Address</label>
-          <div className={`${authStyles.inputWrapper} ${errors.email ? authStyles.inputError : ""}`}>
+          <div className={authStyles.inputWrapper}>
             <span className={authStyles.inputIcon}>✉️</span>
-            <input id="email" type="email" placeholder="your@email.com" value={form.email} onChange={set("email")} />
+            <input
+              id="email"
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
           </div>
-          {errors.email && <span className={authStyles.fieldError}>{errors.email}</span>}
         </div>
 
         <div className={authStyles.formGroup}>
           <label htmlFor="password">Password</label>
-          <div className={`${authStyles.inputWrapper} ${errors.password ? authStyles.inputError : ""}`}>
+          <div className={authStyles.inputWrapper}>
             <span className={authStyles.inputIcon}>🔒</span>
-            <input id="password" type="password" placeholder="Enter your password" value={form.password} onChange={set("password")} />
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              className={authStyles.eyeBtn}
+              onClick={() => setShowPassword((p) => !p)}
+              tabIndex={-1}
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
           </div>
-          {errors.password && <span className={authStyles.fieldError}>{errors.password}</span>}
-          <Link href="/forgot-password" className={authStyles.forgotLink}>Forgot password?</Link>
+          <Link href="/forgot-password" className={authStyles.forgotLink}>
+            Forgot password?
+          </Link>
         </div>
 
         <button type="submit" className={authStyles.submitBtn} disabled={loading}>
@@ -74,7 +93,8 @@ function LoginForm() {
       </form>
 
       <p className={authStyles.switchText}>
-        Don't have an account? <Link href="/signup">Sign up here</Link>
+        Don't have an account?{" "}
+        <Link href="/signup">Sign up here</Link>
       </p>
     </div>
   );
@@ -100,7 +120,7 @@ export default function LoginPage() {
       </nav>
 
       <div className={authStyles.authWrapper}>
-        <Suspense fallback={<div className={authStyles.authCard}><p>Loading...</p></div>}>
+        <Suspense fallback={<div className={authStyles.authCard}><p style={{textAlign:"center",padding:"40px"}}>Loading...</p></div>}>
           <LoginForm />
         </Suspense>
       </div>
