@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, LayoutDashboard, ClipboardList, User, LogOut } from "lucide-react";
+import { ShoppingCart, LayoutDashboard, ClipboardList, UserCircle, LogOut } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import styles from "../page.module.css";
@@ -28,7 +28,7 @@ export default function Navbar() {
   return (
     <nav className={styles.navbar}>
       <Link href="/" className={styles.logoLink}>
-        <h2 className={styles.logo}>Puto Bumbong</h2>
+        <span className={styles.logo}>🍢 Puto Bumbong</span>
       </Link>
 
       <ul className={styles.navLinks}>
@@ -42,37 +42,32 @@ export default function Navbar() {
       </ul>
 
       <div className={styles.navRight}>
-        {/* CART ICON */}
-        <Link href="/order" className={styles.cartLink}>
-          <ShoppingCart size={22} />
+        <Link href="/order" className={styles.cartLink} title="Cart">
+          <ShoppingCart size={20} />
           {totalItems > 0 && <span className={styles.cartBadge}>{totalItems}</span>}
         </Link>
 
-        {/* AUTH */}
         {user ? (
           <div className={styles.userMenu}>
             <span className={styles.userName}>Hi, {user.firstName}!</span>
             {user.role === "admin" && (
-              <Link href="/admin/dashboard" className={styles.loginBtn}>
-                <LayoutDashboard size={15} style={{ marginRight: 4, verticalAlign: "middle" }} />
-                Dashboard
+              <Link href="/admin/dashboard" className={styles.iconBtn} title="Dashboard">
+                <LayoutDashboard size={18} />
               </Link>
             )}
             {user.role === "customer" && (
-              <Link href="/my-orders" className={styles.loginBtn}>
-                <ClipboardList size={15} style={{ marginRight: 4, verticalAlign: "middle" }} />
-                My Orders
+              <Link href="/my-orders" className={styles.iconBtn} title="My Orders">
+                <ClipboardList size={18} />
               </Link>
             )}
             {user.role === "customer" && (
-              <Link href="/profile" className={styles.loginBtn}>
-                <User size={15} style={{ marginRight: 4, verticalAlign: "middle" }} />
-                Profile
+              <Link href="/profile" className={styles.iconBtn} title="Profile">
+                <UserCircle size={18} />
               </Link>
             )}
-            <button className={styles.logoutNavBtn} onClick={handleLogout}>
-              <LogOut size={15} style={{ marginRight: 4, verticalAlign: "middle" }} />
-              Logout
+            <button className={styles.logoutNavBtn} onClick={handleLogout} title="Logout">
+              <LogOut size={15} />
+              <span>Logout</span>
             </button>
           </div>
         ) : (
