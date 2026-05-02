@@ -1,22 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readDB, User } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
+  if (!email?.trim()) return NextResponse.json({ error: "Email is required." }, { status: 400 });
 
-  if (!email?.trim()) {
-    return NextResponse.json({ error: "Email is required." }, { status: 400 });
+  const { data: users } = await supabase.from("users").select("security_question").ilike("email", email).limit(1);
+  const user = users?.[0];
+
+  if (!user || !user.security_question) {
+    return NextResponse.json({ error: "No account found with that email, or account has no security question set." }, { status: 404 });
   }
 
-  const users = readDB<User>("users.json");
-  const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-
-  // Always return same message to prevent email enumeration
-  if (!user || !user.securityQuestion) {
-    return NextResponse.json({
-      error: "No account found with that email, or account has no security question set.",
-    }, { status: 404 });
-  }
-
-  return NextResponse.json({ securityQuestion: user.securityQuestion });
+  return NextResponse.json({ securityQuestion: user.security_question });
 }

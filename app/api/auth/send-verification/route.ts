@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (user.emailVerified) return NextResponse.json({ error: "Email is already verified." }, { status: 400 });
 
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  saveCode(email, code);
+  await saveCode(email, code);
 
   try {
     await sendVerificationEmail(email, user.firstName, code);

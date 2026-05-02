@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readDB, writeDB, Product } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const token = req.headers.get("authorization")?.split(" ")[1];
   const user = token ? verifyToken(token) : null;
-  if (!user || user.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  if (!user || user.role !== "admin") return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
   const body = await req.json();
-  const products = readDB<Product>("products.json");
-  const updated = products.map((p) =>
-    p.id === id ? { ...p, ...body, price: Number(body.price), stock: Number(body.stock) } : p
-  );
-  writeDB("products.json", updated);
-  return NextResponse.json(updated.find((p) => p.id === id));
+  const { data, error } = await supabase
+    .from("products")
+    .update({ ...body, price: Number(body.price), stock: Number(body.stock) })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: "Failed to update product." }, { status: 500 });
+  return NextResponse.json(data);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const token = req.headers.get("authorization")?.split(" ")[1];
   const user = token ? verifyToken(token) : null;
-  if (!user || user.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  if (!user || user.role !== "admin") return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  const products = readDB<Product>("products.json");
-  writeDB("products.json", products.filter((p) => p.id !== id));
+  const { error } = await supabase.from("products").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: "Failed to delete product." }, { status: 500 });
   return NextResponse.json({ success: true });
 }

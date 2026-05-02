@@ -1,34 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readDB, writeDB, Product } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 import { validateProduct, hasErrors } from "@/lib/validation";
 
 export async function GET() {
-  const products = readDB<Product>("products.json");
-  return NextResponse.json(products);
+  const { data, error } = await supabase.from("products").select("*").order("created_at");
+  if (error) return NextResponse.json({ error: "Failed to fetch products." }, { status: 500 });
+  return NextResponse.json(data);
 }
 
 export async function POST(req: NextRequest) {
   const token = req.headers.get("authorization")?.split(" ")[1];
   const user = token ? verifyToken(token) : null;
-  if (!user || user.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
+  if (!user || user.role !== "admin") return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
   const body = await req.json();
   const errors = validateProduct(body);
-  if (hasErrors(errors)) {
-    return NextResponse.json({ error: Object.values(errors)[0], errors }, { status: 400 });
-  }
+  if (hasErrors(errors)) return NextResponse.json({ error: Object.values(errors)[0] }, { status: 400 });
 
-  const products = readDB<Product>("products.json");
+  const { data: existing } = await supabase.from("products").select("id").ilike("name", body.name).limit(1);
+  if (existing && existing.length > 0) return NextResponse.json({ error: "Product name already exists." }, { status: 409 });
 
-  // Check duplicate name
-  if (products.find((p) => p.name.toLowerCase() === body.name.toLowerCase())) {
-    return NextResponse.json({ error: "A product with this name already exists.", errors: { name: "Name already exists." } }, { status: 409 });
-  }
-
-  const newProduct: Product = {
+  const newProduct = {
     id: Date.now().toString(),
     name: body.name.trim(),
     description: body.description.trim(),
@@ -39,6 +32,7 @@ export async function POST(req: NextRequest) {
     available: Number(body.stock) > 0,
   };
 
-  writeDB("products.json", [...products, newProduct]);
-  return NextResponse.json(newProduct, { status: 201 });
+  const { data, error } = await supabase.from("products").insert(newProduct).select().single();
+  if (error) return NextResponse.json({ error: "Failed to create product." }, { status: 500 });
+  return NextResponse.json(data, { status: 201 });
 }

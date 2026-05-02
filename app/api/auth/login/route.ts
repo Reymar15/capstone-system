@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { readDB, User } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { signToken } from "@/lib/auth";
 import { validateLogin, hasErrors } from "@/lib/validation";
 
@@ -8,26 +8,27 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const errors = validateLogin(body);
   if (hasErrors(errors)) {
-    return NextResponse.json({ error: Object.values(errors)[0], errors }, { status: 400 });
+    return NextResponse.json({ error: Object.values(errors)[0] }, { status: 400 });
   }
 
   const { email, password } = body;
-  const users = readDB<User>("users.json");
-  const user = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
 
-  if (!user) {
-    return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
-  }
+  const { data: users } = await supabase
+    .from("users")
+    .select("*")
+    .ilike("email", email)
+    .limit(1);
+
+  const user = users?.[0];
+  if (!user) return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
 
   const valid = await bcrypt.compare(password, user.password);
-  if (!valid) {
-    return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
-  }
+  if (!valid) return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
 
-  const token = signToken({ id: user.id, email: user.email, role: user.role, firstName: user.firstName });
+  const token = signToken({ id: user.id, email: user.email, role: user.role, firstName: user.first_name });
   const res = NextResponse.json({
     token,
-    user: { id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role },
+    user: { id: user.id, firstName: user.first_name, lastName: user.last_name, email: user.email, role: user.role },
   });
   res.cookies.set("token", token, {
     httpOnly: true,
