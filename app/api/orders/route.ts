@@ -3,6 +3,42 @@ import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 import { validateOrder, hasErrors } from "@/lib/validation";
 
+type OrderItemPayload = {
+  productId: string;
+  name: string;
+  price: number;
+  qty: number;
+  image: string;
+};
+
+type OrderRequestBody = {
+  customerName: string;
+  phone: string;
+  address: string;
+  payment: string;
+  notes?: string;
+  total: number;
+  items: OrderItemPayload[];
+};
+
+type OrderRow = {
+  id: string;
+  user_id?: string;
+  customer_name?: string | null;
+  customerName?: string | null;
+  payment_status?: string | null;
+  created_at?: string | null;
+  createdAt?: string | null;
+  order_items?: unknown[];
+  [key: string]: unknown;
+};
+
+type UserNameRow = {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+};
+
 export async function GET(req: NextRequest) {
   const token = req.headers.get("authorization")?.split(" ")[1];
   const user = token ? verifyToken(token) : null;
@@ -18,12 +54,25 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: "Failed to fetch orders." }, { status: 500 });
 
-  // Map order_items to items and snake_case to camelCase for frontend compatibility
-  const orders = data.map((o: any) => ({
+  const orderRows = (data || []) as OrderRow[];
+  const userIds = Array.from(new Set(orderRows.map((o) => o.user_id).filter(Boolean)));
+  const { data: users } = userIds.length
+    ? await supabase.from("users").select("id, first_name, last_name").in("id", userIds)
+    : { data: [] };
+
+  const userNames = new Map(
+    ((users || []) as UserNameRow[]).map((u) => [
+      u.id,
+      `${u.first_name || ""} ${u.last_name || ""}`.trim(),
+    ])
+  );
+
+  // Map order_items to items and snake_case to camelCase for frontend compatibility.
+  const orders = orderRows.map((o) => ({
     ...o,
-    customerName: o.customer_name,
-    paymentStatus: o.payment_status,
-    createdAt: o.created_at,
+    customerName: (o.customer_name || o.customerName || userNames.get(o.user_id) || "Customer").trim(),
+    paymentStatus: o.payment_status || "Pending",
+    createdAt: o.created_at || o.createdAt || (/^\d+$/.test(String(o.id)) ? new Date(Number(o.id)).toISOString() : ""),
     items: o.order_items || [],
   }));
   return NextResponse.json(orders);
@@ -34,7 +83,7 @@ export async function POST(req: NextRequest) {
   const user = token ? verifyToken(token) : null;
   if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  const body = await req.json();
+  const body = (await req.json()) as OrderRequestBody;
   const errors = validateOrder(body);
   if (hasErrors(errors)) return NextResponse.json({ error: Object.values(errors)[0] }, { status: 400 });
 
@@ -65,7 +114,7 @@ export async function POST(req: NextRequest) {
   if (orderError) return NextResponse.json({ error: "Failed to place order." }, { status: 500 });
 
   // Insert order items
-  const orderItems = body.items.map((i: any) => ({
+  const orderItems = body.items.map((i) => ({
     order_id: orderId,
     product_id: i.productId,
     name: i.name,
@@ -91,12 +140,13 @@ export async function POST(req: NextRequest) {
     .eq("id", orderId)
     .single();
 
+  const newOrderRow = newOrder as OrderRow | null;
   const result = {
-    ...newOrder,
-    customerName: newOrder?.customer_name,
-    paymentStatus: newOrder?.payment_status,
-    createdAt: newOrder?.created_at,
-    items: newOrder?.order_items || [],
+    ...newOrderRow,
+    customerName: (newOrderRow?.customer_name || newOrderRow?.customerName || "Customer").trim(),
+    paymentStatus: newOrderRow?.payment_status || "Pending",
+    createdAt: newOrderRow?.created_at || newOrderRow?.createdAt || (/^\d+$/.test(String(newOrderRow?.id)) ? new Date(Number(newOrderRow?.id)).toISOString() : ""),
+    items: newOrderRow?.order_items || [],
   };
   return NextResponse.json(result, { status: 201 });
 }

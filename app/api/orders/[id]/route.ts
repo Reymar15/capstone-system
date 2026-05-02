@@ -13,11 +13,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
   if (user.role !== "admin" && order.user_id !== user.id) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
+  const { data: customer } = await supabase
+    .from("users")
+    .select("first_name, last_name")
+    .eq("id", order.user_id)
+    .single();
+  const customerName = `${customer?.first_name || ""} ${customer?.last_name || ""}`.trim();
+
   return NextResponse.json({
     ...order,
-    customerName: order.customer_name,
-    paymentStatus: order.payment_status,
-    createdAt: order.created_at,
+    customerName: (order.customer_name || order.customerName || customerName || "Customer").trim(),
+    paymentStatus: order.payment_status || "Pending",
+    createdAt: order.created_at || order.createdAt || (/^\d+$/.test(String(order.id)) ? new Date(Number(order.id)).toISOString() : ""),
     items: order.order_items || [],
   });
 }
@@ -52,9 +59,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   return NextResponse.json({
     ...updated,
-    customerName: updated?.customer_name,
-    paymentStatus: updated?.payment_status,
-    createdAt: updated?.created_at,
+    customerName: (updated?.customer_name || updated?.customerName || "Customer").trim(),
+    paymentStatus: updated?.payment_status || "Pending",
+    createdAt: updated?.created_at || updated?.createdAt || (/^\d+$/.test(String(updated?.id)) ? new Date(Number(updated?.id)).toISOString() : ""),
     items: updated?.order_items || [],
   });
 }
