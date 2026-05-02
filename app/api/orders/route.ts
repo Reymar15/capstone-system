@@ -18,8 +18,14 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: "Failed to fetch orders." }, { status: 500 });
 
-  // Map order_items to items for frontend compatibility
-  const orders = data.map((o: any) => ({ ...o, items: o.order_items || [] }));
+  // Map order_items to items and snake_case to camelCase for frontend compatibility
+  const orders = data.map((o: any) => ({
+    ...o,
+    customerName: o.customer_name,
+    paymentStatus: o.payment_status,
+    createdAt: o.created_at,
+    items: o.order_items || [],
+  }));
   return NextResponse.json(orders);
 }
 
@@ -85,6 +91,12 @@ export async function POST(req: NextRequest) {
     .eq("id", orderId)
     .single();
 
-  const result = { ...newOrder, items: newOrder?.order_items || [] };
+  const result = {
+    ...newOrder,
+    customerName: newOrder?.customer_name,
+    paymentStatus: newOrder?.payment_status,
+    createdAt: newOrder?.created_at,
+    items: newOrder?.order_items || [],
+  };
   return NextResponse.json(result, { status: 201 });
 }

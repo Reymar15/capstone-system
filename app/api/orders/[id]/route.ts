@@ -13,7 +13,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
   if (user.role !== "admin" && order.user_id !== user.id) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  return NextResponse.json({ ...order, items: order.order_items || [] });
+  return NextResponse.json({
+    ...order,
+    customerName: order.customer_name,
+    paymentStatus: order.payment_status,
+    createdAt: order.created_at,
+    items: order.order_items || [],
+  });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -44,5 +50,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     } catch {}
   }
 
-  return NextResponse.json({ ...updated, items: updated?.order_items || [] });
+  return NextResponse.json({
+    ...updated,
+    customerName: updated?.customer_name,
+    paymentStatus: updated?.payment_status,
+    createdAt: updated?.created_at,
+    items: updated?.order_items || [],
+  });
 }
