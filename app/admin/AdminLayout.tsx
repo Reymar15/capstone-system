@@ -38,7 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className={styles.adminName}>{user?.firstName} {user?.lastName}</p>
           <p className={styles.adminEmail}>{user?.email}</p>
           <button className={styles.logoutBtn} onClick={async () => { await logout(); router.push("/login"); }}>
-            <LogOut size={15} style={{ marginRight: 6, verticalAlign: "middle" }} />
+            <LogOut size={15} />
             Logout
           </button>
         </div>
