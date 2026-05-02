@@ -6,15 +6,18 @@
 
 /* NAVBAR */
 .navbar {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 48px;
-  background: white;
+  padding: 14px 48px;
+  background: #ffffff;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 0;
   z-index: 100;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .logo {

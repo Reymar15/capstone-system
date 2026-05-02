@@ -28,6 +28,12 @@ main {
   background: #ffffff;
 }
 
+/* Prevent flex from affecting navbar internals */
+nav {
+  display: flex !important;
+  flex-direction: row !important;
+}
+
 @media print {
   nav { display: none !important; }
 }
