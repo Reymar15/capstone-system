@@ -55,7 +55,7 @@ export default function Home() {
               We believe food is more than nourishment — it's a connection to culture, memory, and love.
               That's why every order is made fresh, with no shortcuts.
             </p>
-            <Link href="/menu" className={styles.orderBtn} style={{ display: "inline-block", marginTop: "16px" }}>
+            <Link href="/menu" className={styles.orderBtn}>
               Order Now
             </Link>
           </div>
