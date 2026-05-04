@@ -1,157 +1,305 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import AdminLayout from "../AdminLayout";
 import styles from "../admin.module.css";
+import msgStyles from "./messages.module.css";
 
-type Message = {
-  id: string; name: string; email: string;
-  phone: string; message: string;
-  is_read: boolean; created_at: string;
+type ChatMsg = {
+  id: string;
+  sender_id: string;
+  sender_role: string;
+  receiver_id: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  replied_at: string | null;
 };
+
+type Conversation = {
+  userId: string;
+  userName: string;
+  lastMessage: string;
+  lastTime: string;
+  unread: number;
+};
+
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric" });
+
+function dateDivider(msgs: ChatMsg[], idx: number) {
+  if (idx === 0) return true;
+  return new Date(msgs[idx - 1].created_at).toDateString() !== new Date(msgs[idx].created_at).toDateString();
+}
 
 export default function AdminMessages() {
   const { user, token } = useAuth();
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([]);
+
+  const [allMessages, setAllMessages] = useState<ChatMsg[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeUserId, setActiveUserId] = useState<string | null>(null);
+  const [thread, setThread] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Message | null>(null);
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Fetch all users to get names
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+
+  const fetchUsers = useCallback(async () => {
+    if (!token) return;
+    const res = await fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) {
+      const data = await res.json();
+      const map: Record<string, string> = {};
+      for (const u of data) map[u.id] = `${u.firstName} ${u.lastName}`;
+      setUserNames(map);
+    }
+  }, [token]);
+
+  const fetchAllMessages = useCallback(async () => {
+    if (!token) return;
+    // Fetch all unique user threads by getting all messages
+    const res = await fetch("/api/chat/messages?all=1", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const data: ChatMsg[] = await res.json();
+    if (!Array.isArray(data)) return;
+    setAllMessages(data);
+
+    // Build conversation list
+    const convMap: Record<string, { msgs: ChatMsg[] }> = {};
+    for (const m of data) {
+      const uid = m.sender_id === "admin" ? m.receiver_id : m.sender_id;
+      if (!convMap[uid]) convMap[uid] = { msgs: [] };
+      convMap[uid].msgs.push(m);
+    }
+
+    const convList: Conversation[] = Object.entries(convMap).map(([uid, { msgs }]) => {
+      const sorted = [...msgs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const unread = msgs.filter((m) => m.sender_id !== "admin" && !m.is_read).length;
+      return {
+        userId: uid,
+        userName: userNames[uid] || uid,
+        lastMessage: sorted[0]?.message || "",
+        lastTime: sorted[0]?.created_at || "",
+        unread,
+      };
+    }).sort((a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime());
+
+    setConversations(convList);
+    setLoading(false);
+  }, [token, userNames]);
+
+  const fetchThread = useCallback(async (userId: string) => {
+    if (!token) return;
+    const res = await fetch(`/api/chat/messages?userId=${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setThread(Array.isArray(data) ? data : []);
+      // Mark as read
+      await fetch("/api/chat/messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId }),
+      });
+      setConversations((prev) => prev.map((c) => c.userId === userId ? { ...c, unread: 0 } : c));
+    }
+  }, [token]);
 
   useEffect(() => {
     if (!user) return;
     if (user.role !== "admin") { router.push("/"); return; }
-    fetch("/api/admin/messages", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((data) => setMessages(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
-  }, [user, token, router]);
+    fetchUsers();
+  }, [user, router, fetchUsers]);
 
-  const markRead = async (msg: Message) => {
-    setSelected(msg);
-    if (!msg.is_read) {
-      await fetch("/api/admin/messages", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id: msg.id }),
-      });
-      setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, is_read: true } : m));
-    }
+  useEffect(() => {
+    if (!token) return;
+    fetchAllMessages();
+    pollRef.current = setInterval(fetchAllMessages, 4000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [token, fetchAllMessages]);
+
+  useEffect(() => {
+    if (!activeUserId) return;
+    fetchThread(activeUserId);
+    const t = setInterval(() => fetchThread(activeUserId), 3000);
+    return () => clearInterval(t);
+  }, [activeUserId, fetchThread]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [thread]);
+
+  const openConversation = (userId: string) => {
+    setActiveUserId(userId);
+    setInput("");
   };
 
-  const unread = messages.filter((m) => !m.is_read).length;
-  const filtered = filter === "unread" ? messages.filter((m) => !m.is_read) : messages;
+  const sendReply = async () => {
+    const text = input.trim();
+    if (!text || !activeUserId || sending) return;
+    setSending(true);
+    setInput("");
+    const res = await fetch("/api/chat/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: text, receiverId: activeUserId }),
+    });
+    if (res.ok) {
+      const msg = await res.json();
+      setThread((prev) => [...prev, msg]);
+    }
+    setSending(false);
+  };
 
-  if (loading) return <div className={styles.loading}>Loading messages...</div>;
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); }
+  };
+
+  const activeConv = conversations.find((c) => c.userId === activeUserId);
+  const totalUnread = conversations.reduce((s, c) => s + c.unread, 0);
+
+  if (loading) return (
+    <AdminLayout>
+      <div className={styles.loading}>Loading messages...</div>
+    </AdminLayout>
+  );
 
   return (
     <AdminLayout>
       <div className={styles.pageHeader}>
         <div>
           <h1>Messages</h1>
-          <p>{messages.length} total · {unread} unread</p>
+          <p>{conversations.length} conversations · {totalUnread} unread</p>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {(["all", "unread"] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            style={{
-              padding: "7px 18px", borderRadius: 999, border: "1.5px solid",
-              borderColor: filter === f ? "#7b1fa2" : "#e9d5ff",
-              background: filter === f ? "#7b1fa2" : "white",
-              color: filter === f ? "white" : "#7b1fa2",
-              fontWeight: 600, fontSize: "0.85rem", cursor: "pointer",
-            }}
-          >
-            {f === "all" ? `All (${messages.length})` : `Unread (${unread})`}
-          </button>
-        ))}
-      </div>
+      <div className={msgStyles.container}>
+        {/* CONVERSATION LIST */}
+        <div className={msgStyles.convList}>
+          <div className={msgStyles.convListHeader}>Conversations</div>
+          {conversations.length === 0 && (
+            <div className={msgStyles.noConv}>No messages yet.</div>
+          )}
+          {conversations.map((c) => (
+            <div
+              key={c.userId}
+              className={`${msgStyles.convItem} ${activeUserId === c.userId ? msgStyles.convItemActive : ""}`}
+              onClick={() => openConversation(c.userId)}
+            >
+              <div className={msgStyles.convAvatar}>
+                {(userNames[c.userId] || "?")[0].toUpperCase()}
+              </div>
+              <div className={msgStyles.convInfo}>
+                <div className={msgStyles.convName}>
+                  {userNames[c.userId] || c.userId}
+                  {c.unread > 0 && <span className={msgStyles.unreadBadge}>{c.unread}</span>}
+                </div>
+                <div className={msgStyles.convPreview}>
+                  {c.lastMessage.length > 40 ? c.lastMessage.slice(0, 40) + "…" : c.lastMessage}
+                </div>
+              </div>
+              <div className={msgStyles.convTime}>
+                {c.lastTime && !isNaN(new Date(c.lastTime).getTime())
+                  ? fmt(c.lastTime)
+                  : ""}
+              </div>
+            </div>
+          ))}
+        </div>
 
-      <div className={styles.card}>
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Status</th><th>From</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((m) => (
-                <tr key={m.id} style={{ fontWeight: m.is_read ? 400 : 700 }}>
-                  <td>
-                    <span className={`${styles.badge} ${m.is_read ? styles.badgeGreen : styles.badgeYellow}`}>
-                      {m.is_read ? "Read" : "New"}
-                    </span>
-                  </td>
-                  <td style={{ color: "#1a1a2e" }}>{m.name}</td>
-                  <td style={{ fontSize: "0.82rem", color: "#6b7280" }}>{m.email}</td>
-                  <td style={{ fontSize: "0.82rem", color: "#6b7280" }}>{m.phone || "—"}</td>
-                  <td style={{ maxWidth: 220, fontSize: "0.85rem", color: "#374151" }}>
-                    {m.message.length > 60 ? m.message.slice(0, 60) + "…" : m.message}
-                  </td>
-                  <td style={{ fontSize: "0.78rem", color: "#9ca3af", whiteSpace: "nowrap" }}>
-                    {m.created_at && !isNaN(new Date(m.created_at).getTime())
-                      ? new Date(m.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
-                      : "—"}
-                  </td>
-                  <td>
-                    <button className={styles.editBtn} onClick={() => markRead(m)}>View</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <p className={styles.empty}>No messages found.</p>}
+        {/* CHAT PANEL */}
+        <div className={msgStyles.chatPanel}>
+          {!activeUserId ? (
+            <div className={msgStyles.noChatSelected}>
+              <span>💬</span>
+              <p>Select a conversation to start replying</p>
+            </div>
+          ) : (
+            <>
+              {/* CHAT HEADER */}
+              <div className={msgStyles.chatHeader}>
+                <div className={msgStyles.chatHeaderAvatar}>
+                  {(userNames[activeUserId] || "?")[0].toUpperCase()}
+                </div>
+                <div>
+                  <strong>{userNames[activeUserId] || activeUserId}</strong>
+                  <p>User</p>
+                </div>
+              </div>
+
+              {/* MESSAGES */}
+              <div className={msgStyles.messages}>
+                {thread.length === 0 && (
+                  <div className={msgStyles.emptyThread}>No messages in this conversation yet.</div>
+                )}
+                {thread.map((msg, idx) => {
+                  const isAdmin = msg.sender_id === "admin";
+                  const showDate = dateDivider(thread, idx);
+                  return (
+                    <div key={msg.id}>
+                      {showDate && (
+                        <div className={msgStyles.dateDivider}>
+                          <span>{fmtDate(msg.created_at)}</span>
+                        </div>
+                      )}
+                      <div className={`${msgStyles.msgRow} ${isAdmin ? msgStyles.msgRowAdmin : ""}`}>
+                        {!isAdmin && (
+                          <div className={msgStyles.msgAvatar}>
+                            {(userNames[msg.sender_id] || "U")[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div className={`${msgStyles.bubble} ${isAdmin ? msgStyles.bubbleAdmin : msgStyles.bubbleUser}`}>
+                          <p>{msg.message}</p>
+                          <span className={msgStyles.msgTime}>
+                            {fmt(msg.created_at)}
+                            {isAdmin && <span>{msg.is_read ? " ✓✓" : " ✓"}</span>}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={bottomRef} />
+              </div>
+
+              {/* INPUT */}
+              <div className={msgStyles.inputRow}>
+                <textarea
+                  className={msgStyles.chatInput}
+                  placeholder={`Reply to ${activeConv?.userName || "user"}...`}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKey}
+                  rows={1}
+                />
+                <button
+                  className={msgStyles.sendBtn}
+                  onClick={sendReply}
+                  disabled={!input.trim() || sending}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
-
-      {selected && (
-        <div className={styles.overlay} onClick={() => setSelected(null)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
-            <h2>Message from {selected.name}</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 20px", marginBottom: 20 }}>
-              <div>
-                <p style={{ margin: "0 0 2px", fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, textTransform: "uppercase" }}>Email</p>
-                <p style={{ margin: 0, color: "#1a1a2e", fontWeight: 600 }}>{selected.email}</p>
-              </div>
-              <div>
-                <p style={{ margin: "0 0 2px", fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, textTransform: "uppercase" }}>Phone</p>
-                <p style={{ margin: 0, color: "#1a1a2e", fontWeight: 600 }}>{selected.phone || "—"}</p>
-              </div>
-              <div>
-                <p style={{ margin: "0 0 2px", fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, textTransform: "uppercase" }}>Date</p>
-                <p style={{ margin: 0, color: "#1a1a2e", fontWeight: 600 }}>
-                  {selected.created_at && !isNaN(new Date(selected.created_at).getTime())
-                    ? new Date(selected.created_at).toLocaleString("en-PH")
-                    : "—"}
-                </p>
-              </div>
-            </div>
-            <div style={{ background: "#f8f5fa", borderRadius: 12, padding: "16px 18px", marginBottom: 24 }}>
-              <p style={{ margin: "0 0 4px", fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, textTransform: "uppercase" }}>Message</p>
-              <p style={{ margin: 0, color: "#1a1a2e", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{selected.message}</p>
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <a
-                href={`mailto:${selected.email}?subject=Re: Your message to Kzen's Puto Bumbong`}
-                style={{
-                  padding: "10px 20px", borderRadius: 10, background: "linear-gradient(135deg,#7b1fa2,#c2188b)",
-                  color: "white", fontWeight: 700, fontSize: "0.9rem", textDecoration: "none",
-                }}
-              >
-                Reply via Email
-              </a>
-              <button className={styles.cancelBtn} onClick={() => setSelected(null)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
     </AdminLayout>
   );
 }
