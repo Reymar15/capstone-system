@@ -49,6 +49,18 @@ export default function AdminProducts() {
     setShowModal(true);
   };
 
+  const toggleAvailable = async (p: Product) => {
+    const newVal = !p.available;
+    const res = await fetch(`/api/products/${p.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ name: p.name, description: p.description, price: p.price, stock: p.stock, category: p.category, image: p.image, available: newVal }),
+    });
+    if (!res.ok) { toastError("Failed to update availability."); return; }
+    setProducts((prev) => prev.map((x) => x.id === p.id ? { ...x, available: newVal } : x));
+    success(`"${p.name}" marked as ${newVal ? "Available" : "Unavailable"}.`);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -61,6 +73,7 @@ export default function AdminProducts() {
     });
     const data = await res.json();
     setSaving(false);
+    if (!res.ok) { toastError(data.error || "Failed to save product."); return; }
     if (editing) {
       setProducts((prev) => prev.map((p) => (p.id === editing.id ? data : p)));
       success("Product updated successfully!");
@@ -141,9 +154,18 @@ export default function AdminProducts() {
                   <td className={styles.priceCell}>₱{p.price}</td>
                   <td className={p.stock <= 5 ? styles.stockLow : styles.stockOk}>{p.stock} pcs</td>
                   <td>
-                    <span className={`${styles.badge} ${p.available ? styles.badgeGreen : styles.badgeRed}`}>
-                      {p.available ? "Available" : "Unavailable"}
-                    </span>
+                    <button
+                      onClick={() => toggleAvailable(p)}
+                      style={{
+                        padding: "5px 14px", borderRadius: 999, border: "none", cursor: "pointer",
+                        fontWeight: 700, fontSize: "0.78rem",
+                        background: p.available ? "#d1fae5" : "#fee2e2",
+                        color: p.available ? "#065f46" : "#991b1b",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      {p.available ? "✓ Available" : "✗ Unavailable"}
+                    </button>
                   </td>
                   <td>
                     <div className={styles.actionBtns}>

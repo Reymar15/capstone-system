@@ -14,6 +14,8 @@ type Order = {
   items: { name: string; qty: number }[];
 };
 
+type Stats = { users: number; messages: number };
+
 const STATUS_COLOR: Record<string, string> = {
   Pending: "#f59e0b", Preparing: "#3b82f6",
   Ready: "#8b5cf6", Completed: "#10b981", Cancelled: "#ef4444",
@@ -42,19 +44,28 @@ export default function AdminDashboard() {
   const { user, token } = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState<Stats>({ users: 0, messages: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     if (user.role !== "admin") { router.push("/"); return; }
-    fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((data) => setOrders(data.sort((a: Order, b: Order) => {
+    Promise.all([
+      fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
+      fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
+      fetch("/api/admin/messages", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
+    ]).then(([ordersData, usersData, messagesData]) => {
+      const sorted = Array.isArray(ordersData) ? ordersData.sort((a: Order, b: Order) => {
         const aTime = a.createdAt && !isNaN(new Date(a.createdAt).getTime()) ? new Date(a.createdAt).getTime() : 0;
         const bTime = b.createdAt && !isNaN(new Date(b.createdAt).getTime()) ? new Date(b.createdAt).getTime() : 0;
         return bTime - aTime;
-      })))
-      .finally(() => setLoading(false));
+      }) : [];
+      setOrders(sorted);
+      setStats({
+        users: Array.isArray(usersData) ? usersData.filter((u: { role: string }) => u.role === "customer").length : 0,
+        messages: Array.isArray(messagesData) ? messagesData.filter((m: { is_read: boolean }) => !m.is_read).length : 0,
+      });
+    }).finally(() => setLoading(false));
   }, [user, token, router]);
 
   const totalSales = orders.reduce((s, o) => s + o.total, 0);
@@ -129,6 +140,13 @@ export default function AdminDashboard() {
             <h2 className={dash.statValue}>{completed}</h2>
           </div>
         </div>
+        <div className={`${dash.statCard} ${dash.statUsers}`}>
+          <div className={dash.statIconBox}>👥</div>
+          <div className={dash.statInfo}>
+            <p className={dash.statLabel}>Users</p>
+            <h2 className={dash.statValue}>{stats.users}</h2>
+          </div>
+        </div>
       </div>
 
       {/* QUICK LINKS */}
@@ -140,6 +158,14 @@ export default function AdminDashboard() {
         <Link href="/admin/products" className={dash.quickCard}>
           <span>🍡</span>
           <p>Manage Products</p>
+        </Link>
+        <Link href="/admin/users" className={dash.quickCard}>
+          <span>👥</span>
+          <p>Manage Users</p>
+        </Link>
+        <Link href="/admin/messages" className={dash.quickCard}>
+          <span>💬</span>
+          <p>Messages {stats.messages > 0 && <span style={{ background: "#ef4444", color: "white", borderRadius: "999px", padding: "1px 7px", fontSize: "0.72rem", fontWeight: 700, marginLeft: 4 }}>{stats.messages}</span>}</p>
         </Link>
         <Link href="/" className={dash.quickCard}>
           <span>🌐</span>

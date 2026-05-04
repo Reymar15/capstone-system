@@ -1,7 +1,7 @@
 /* STATS GRID */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -75,10 +75,15 @@
   color: white;
 }
 
+.statUsers {
+  background: linear-gradient(135deg, #0277bd, #0288d1);
+  color: white;
+}
+
 /* QUICK LINKS */
 .quickLinks {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -133,9 +138,10 @@
 
 @media (max-width: 1200px) {
   .statsGrid { grid-template-columns: repeat(3, 1fr); }
+  .quickLinks { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 768px) {
   .statsGrid { grid-template-columns: repeat(2, 1fr); }
-  .quickLinks { grid-template-columns: 1fr; }
+  .quickLinks { grid-template-columns: repeat(2, 1fr); }
 }

@@ -44,22 +44,24 @@ export default function AdminOrders() {
   }, [user, token, router]);
 
   const updateStatus = async (id: string, status: string) => {
-    await fetch(`/api/orders/${id}`, {
+    const res = await fetch(`/api/orders/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ status }),
     });
+    if (!res.ok) { success("Failed to update status."); return; }
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
     if (selected?.id === id) setSelected((prev) => prev ? { ...prev, status } : null);
     success(`Order status updated to "${status}".`);
   };
 
   const updatePayment = async (id: string, paymentStatus: string) => {
-    await fetch(`/api/orders/${id}`, {
+    const res = await fetch(`/api/orders/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ paymentStatus }),
     });
+    if (!res.ok) { success("Failed to update payment status."); return; }
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus } : o)));
     if (selected?.id === id) setSelected((prev) => prev ? { ...prev, paymentStatus } : null);
     success(`Payment status updated to "${paymentStatus}".`);
@@ -169,7 +171,7 @@ export default function AdminOrders() {
                         value={o.status}
                         onChange={(e) => updateStatus(o.id, e.target.value)}
                       >
-                        {["Pending","Preparing","Ready","Completed","Cancelled"].map((s) => (
+                        {["Pending","Preparing","Ready","Completed"].map((s) => (
                           <option key={s} value={s}>{s}</option>
                         ))}
                       </select>

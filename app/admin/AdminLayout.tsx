@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, PackageOpen, ShoppingBag, Globe, LogOut } from "lucide-react";
+import { LayoutDashboard, PackageOpen, ShoppingBag, Users, MessageSquare, Globe, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import styles from "./admin.module.css";
 
@@ -18,6 +18,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const manageNav = [
     { href: "/admin/orders", label: "Manage Orders", icon: <PackageOpen size={18} /> },
     { href: "/admin/products", label: "Manage Products", icon: <ShoppingBag size={18} /> },
+    { href: "/admin/users", label: "Manage Users", icon: <Users size={18} /> },
+    { href: "/admin/messages", label: "Messages", icon: <MessageSquare size={18} /> },
     { href: "/", label: "View Website", icon: <Globe size={18} /> },
   ];
 
