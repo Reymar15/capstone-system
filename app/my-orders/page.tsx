@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
@@ -11,7 +11,6 @@ type OrderItem = { name: string; qty: number; price: number };
 type Order = {
   id: string; customerName: string; items: OrderItem[]; total: number;
   status: string; paymentStatus: string; payment: string; createdAt: string; address: string;
-  reviewed?: boolean;
 };
 
 const STEPS = ["Pending", "Preparing", "Ready", "Completed"];
@@ -21,51 +20,97 @@ const STATUS_COLOR: Record<string, string> = {
   Ready: "#8b5cf6", Completed: "#10b981", Cancelled: "#ef4444",
 };
 
+function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          onMouseEnter={() => setHovered(star)}
+          onMouseLeave={() => setHovered(0)}
+          onClick={() => onChange(star)}
+          style={{
+            fontSize: "2rem", background: "none", border: "none", cursor: "pointer", padding: 0,
+            color: star <= (hovered || value) ? "#f59e0b" : "#e5e7eb",
+            transition: "color 0.1s, transform 0.1s",
+            transform: star <= (hovered || value) ? "scale(1.15)" : "scale(1)",
+          }}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function MyOrdersPage() {
   const { user, token } = useAuth();
   const { success, error: toastError } = useToast();
   const router = useRouter();
+
   const [orders, setOrders] = useState<Order[]>([]);
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Review modal state
   const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
-  const [submittingReview, setSubmittingReview] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const loadData = useCallback(async () => {
+    if (!user || !token) return;
+    const [ordersRes, reviewsRes] = await Promise.all([
+      fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`/api/reviews?userId=${user.id}`),
+    ]);
+    const ordersData = await ordersRes.json();
+    const reviewsData = await reviewsRes.json();
+
+    if (Array.isArray(ordersData)) {
+      setOrders(ordersData.sort((a: Order, b: Order) => {
+        const at = a.createdAt && !isNaN(new Date(a.createdAt).getTime()) ? new Date(a.createdAt).getTime() : 0;
+        const bt = b.createdAt && !isNaN(new Date(b.createdAt).getTime()) ? new Date(b.createdAt).getTime() : 0;
+        return bt - at;
+      }));
+    }
+    if (Array.isArray(reviewsData)) {
+      setReviewedIds(new Set(reviewsData.map((r: { orderId: string }) => r.orderId)));
+    }
+    setLoading(false);
+  }, [user, token]);
 
   useEffect(() => {
     if (!user) { router.push("/login"); return; }
-    fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!Array.isArray(data)) return;
-        setOrders(data.sort((a: Order, b: Order) => {
-          const aTime = a.createdAt && !isNaN(new Date(a.createdAt).getTime()) ? new Date(a.createdAt).getTime() : 0;
-          const bTime = b.createdAt && !isNaN(new Date(b.createdAt).getTime()) ? new Date(b.createdAt).getTime() : 0;
-          return bTime - aTime;
-        }));
-      })
-      .finally(() => setLoading(false));
-  }, [user, token, router]);
+    loadData();
+  }, [user, router, loadData]);
+
+  const openReview = (order: Order) => {
+    setReviewOrder(order);
+    setReviewRating(5);
+    setReviewText("");
+  };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewText.trim()) { toastError("Please write a review."); return; }
-    setSubmittingReview(true);
+    setSubmitting(true);
     try {
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ orderId: reviewOrder!.id, rating: reviewRating, comment: reviewText.trim() }),
       });
-      if (!res.ok) { const d = await res.json(); toastError(d.error || "Failed to submit review."); return; }
-      setOrders((prev) => prev.map((o) => o.id === reviewOrder!.id ? { ...o, reviewed: true } : o));
+      const data = await res.json();
+      if (!res.ok) { toastError(data.error || "Failed to submit review."); return; }
+      setReviewedIds((prev) => new Set([...prev, reviewOrder!.id]));
       success("Review submitted! Thank you 🎉");
       setReviewOrder(null);
-      setReviewText("");
-      setReviewRating(5);
     } finally {
-      setSubmittingReview(false);
+      setSubmitting(false);
     }
   };
 
@@ -96,9 +141,11 @@ export default function MyOrdersPage() {
             const isCancelled = order.status === "Cancelled";
             const isCompleted = order.status === "Completed";
             const isOpen = expanded === order.id;
+            const alreadyReviewed = reviewedIds.has(order.id);
 
             return (
               <div key={order.id} className={orderStyles.orderCard}>
+                {/* HEADER */}
                 <div className={orderStyles.cardHeader} onClick={() => setExpanded(isOpen ? null : order.id)}>
                   <div className={orderStyles.orderMeta}>
                     <span className={orderStyles.orderId}>#{order.id.slice(-6)}</span>
@@ -120,6 +167,7 @@ export default function MyOrdersPage() {
                   </div>
                 </div>
 
+                {/* PROGRESS TRACKER */}
                 {!isCancelled && (
                   <div className={orderStyles.tracker}>
                     {STEPS.map((step, i) => (
@@ -138,6 +186,7 @@ export default function MyOrdersPage() {
 
                 {isCancelled && <div className={orderStyles.cancelledBanner}>❌ This order was cancelled.</div>}
 
+                {/* EXPANDED DETAILS */}
                 {isOpen && (
                   <div className={orderStyles.details}>
                     <div className={orderStyles.detailsGrid}>
@@ -158,9 +207,7 @@ export default function MyOrdersPage() {
                     </div>
 
                     <table className={orderStyles.itemsTable}>
-                      <thead>
-                        <tr><th>Item</th><th>Qty</th><th>Subtotal</th></tr>
-                      </thead>
+                      <thead><tr><th>Item</th><th>Qty</th><th>Subtotal</th></tr></thead>
                       <tbody>
                         {order.items.map((item, i) => (
                           <tr key={i}>
@@ -171,18 +218,22 @@ export default function MyOrdersPage() {
                         ))}
                       </tbody>
                     </table>
+
                     <div className={orderStyles.totalRow}>
                       <span>Total</span>
                       <span>₱{order.total}</span>
                     </div>
 
+                    {/* REVIEW SECTION */}
                     {isCompleted && (
-                      <div style={{ marginTop: 16 }}>
-                        {order.reviewed ? (
-                          <div className={orderStyles.reviewedBadge}>✅ Review submitted — thank you!</div>
+                      <div className={orderStyles.reviewSection}>
+                        {alreadyReviewed ? (
+                          <div className={orderStyles.reviewedBadge}>
+                            <span>✅</span> Review submitted — thank you for your feedback!
+                          </div>
                         ) : (
-                          <button className={orderStyles.reviewBtn} onClick={() => { setReviewOrder(order); setReviewRating(5); setReviewText(""); }}>
-                            ⭐ Leave a Review
+                          <button className={orderStyles.reviewBtn} onClick={() => openReview(order)}>
+                            ⭐ Rate & Review this Order
                           </button>
                         )}
                       </div>
@@ -199,42 +250,43 @@ export default function MyOrdersPage() {
       {reviewOrder && (
         <div className={orderStyles.overlay} onClick={() => setReviewOrder(null)}>
           <div className={orderStyles.reviewModal} onClick={(e) => e.stopPropagation()}>
-            <h2>Leave a Review</h2>
-            <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: 20 }}>
-              Order #{reviewOrder.id.slice(-6)} · {reviewOrder.items.map((i) => i.name).join(", ")}
-            </p>
+            <div className={orderStyles.reviewModalHeader}>
+              <h2>Rate Your Order</h2>
+              <button className={orderStyles.reviewModalClose} onClick={() => setReviewOrder(null)}>✕</button>
+            </div>
+
+            <div className={orderStyles.reviewOrderInfo}>
+              <span className={orderStyles.reviewOrderId}>#{reviewOrder.id.slice(-6)}</span>
+              <span className={orderStyles.reviewOrderItems}>{reviewOrder.items.map((i) => i.name).join(", ")}</span>
+            </div>
+
             <form onSubmit={handleReviewSubmit}>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontWeight: 600, fontSize: "0.9rem", display: "block", marginBottom: 8 }}>Rating</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewRating(star)}
-                      style={{ fontSize: "1.8rem", background: "none", border: "none", cursor: "pointer", opacity: star <= reviewRating ? 1 : 0.3, transition: "opacity 0.15s" }}
-                    >
-                      ⭐
-                    </button>
-                  ))}
-                </div>
+              <div className={orderStyles.ratingSection}>
+                <label>How would you rate this order?</label>
+                <StarPicker value={reviewRating} onChange={setReviewRating} />
+                <span className={orderStyles.ratingLabel}>
+                  {["", "Poor", "Fair", "Good", "Very Good", "Excellent"][reviewRating]}
+                </span>
               </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontWeight: 600, fontSize: "0.9rem", display: "block", marginBottom: 8 }}>Your Review</label>
+
+              <div className={orderStyles.reviewTextSection}>
+                <label>Share your experience</label>
                 <textarea
                   rows={4}
-                  placeholder="Share your experience..."
+                  placeholder="Tell us what you loved (or didn't love) about your order..."
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
-                  style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e9d5ff", fontSize: "0.9rem", fontFamily: "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }}
+                  className={orderStyles.reviewTextarea}
                 />
+                <span className={orderStyles.charCount}>{reviewText.length}/500</span>
               </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => setReviewOrder(null)} style={{ padding: "9px 20px", borderRadius: 8, border: "1.5px solid #e5e7eb", background: "white", cursor: "pointer", fontWeight: 600 }}>
+
+              <div className={orderStyles.reviewModalBtns}>
+                <button type="button" className={orderStyles.reviewCancelBtn} onClick={() => setReviewOrder(null)}>
                   Cancel
                 </button>
-                <button type="submit" disabled={submittingReview} style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#7b1fa2,#c2188b)", color: "white", fontWeight: 700, cursor: "pointer" }}>
-                  {submittingReview ? "Submitting..." : "Submit Review"}
+                <button type="submit" className={orderStyles.reviewSubmitBtn} disabled={submitting || !reviewText.trim()}>
+                  {submitting ? "Submitting..." : "Submit Review"}
                 </button>
               </div>
             </form>

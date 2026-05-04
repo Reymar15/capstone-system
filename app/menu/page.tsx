@@ -20,21 +20,55 @@ type Product = {
   badge?: string;
 };
 
+type ReviewSummary = { avg: number; count: number };
+
 const categories = ["All", "Classic", "Special", "Ube"];
+
+function StarDisplay({ avg, count }: { avg: number; count: number }) {
+  const full = Math.floor(avg);
+  const half = avg - full >= 0.5;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
+      <span style={{ color: "#f59e0b", fontSize: "0.9rem", letterSpacing: 1 }}>
+        {Array.from({ length: 5 }, (_, i) => (
+          <span key={i} style={{ opacity: i < full ? 1 : i === full && half ? 0.6 : 0.2 }}>★</span>
+        ))}
+      </span>
+      <span style={{ fontSize: "0.78rem", color: "#9ca3af", fontWeight: 500 }}>
+        {count > 0 ? `${avg.toFixed(1)} (${count})` : "No reviews yet"}
+      </span>
+    </div>
+  );
+}
 
 export default function MenuPage() {
   const [active, setActive] = useState("All");
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
+  const [reviewMap, setReviewMap] = useState<Record<string, ReviewSummary>>({});
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
   const { success, warning } = useToast();
 
   useEffect(() => {
-    fetch("/api/products")
-      .then((r) => r.json())
-      .then(setProducts)
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetch("/api/products").then((r) => r.json()),
+      fetch("/api/reviews").then((r) => r.json()),
+    ]).then(([prods, reviews]) => {
+      setProducts(Array.isArray(prods) ? prods : []);
+      if (Array.isArray(reviews)) {
+        const map: Record<string, ReviewSummary> = {};
+        for (const r of reviews) {
+          const key = r.productName?.split(",")[0]?.trim() || "";
+          if (!key) continue;
+          if (!map[key]) map[key] = { avg: 0, count: 0 };
+          map[key].count += 1;
+          map[key].avg += r.rating;
+        }
+        for (const k of Object.keys(map)) map[k].avg = map[k].avg / map[k].count;
+        setReviewMap(map);
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
   const filtered = (active === "All" ? products : products.filter((p) => p.category === active))
@@ -120,7 +154,7 @@ export default function MenuPage() {
                 </div>
 
                 <div className={styles.cardBody}>
-                  <div className={styles.cardRating}>⭐⭐⭐⭐⭐</div>
+                  <StarDisplay avg={reviewMap[item.name]?.avg || 0} count={reviewMap[item.name]?.count || 0} />
                   <h3>{item.name}</h3>
                   <p>{item.description}</p>
 
