@@ -27,6 +27,7 @@ export default function AdminProducts() {
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -92,6 +93,21 @@ export default function AdminProducts() {
         <button className={styles.primaryBtn} onClick={openAdd}>+ Add Product</button>
       </div>
 
+      <div style={{ marginBottom: 16 }}>
+        <input
+          type="text"
+          placeholder="🔍 Search by name or category..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: "100%", padding: "11px 16px", borderRadius: 10,
+            border: "1.5px solid #e9d5ff", fontSize: "0.92rem",
+            outline: "none", fontFamily: "inherit", background: "white",
+            boxSizing: "border-box", color: "#000000",
+          }}
+        />
+      </div>
+
       <div className={styles.card}>
         <div className={styles.tableWrapper}>
           <table className={styles.table}>
@@ -102,7 +118,12 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
+              {products
+                .filter((p) => {
+                  const q = search.trim().toLowerCase();
+                  return q === "" || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+                })
+                .map((p) => (
                 <tr key={p.id}>
                   <td>
                     <div style={{ position: "relative", width: 52, height: 52, borderRadius: 10, overflow: "hidden" }}>

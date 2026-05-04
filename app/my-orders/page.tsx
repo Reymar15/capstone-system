@@ -31,7 +31,11 @@ export default function MyOrdersPage() {
     if (!user) { router.push("/login"); return; }
     fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((data) => setOrders(data.sort((a: Order, b: Order) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())))
+      .then((data) => setOrders(data.sort((a: Order, b: Order) => {
+        const aTime = a.createdAt && !isNaN(new Date(a.createdAt).getTime()) ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt && !isNaN(new Date(b.createdAt).getTime()) ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      })))
       .finally(() => setLoading(false));
   }, [user, token, router]);
 

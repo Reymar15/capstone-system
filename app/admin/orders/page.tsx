@@ -66,11 +66,14 @@ export default function AdminOrders() {
   };
 
   const filters = ["All", "Pending", "Preparing", "Ready", "Completed", "Cancelled"];
+  const q = search.trim().toLowerCase();
   const filtered = (filter === "All" ? orders : orders.filter((o) => o.status === filter))
     .filter((o) =>
-      search.trim() === "" ||
-      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      o.id.toLowerCase().includes(search.toLowerCase())
+      q === "" ||
+      o.customerName.toLowerCase().includes(q) ||
+      o.id.toLowerCase().includes(q) ||
+      o.phone?.toLowerCase().includes(q) ||
+      o.address?.toLowerCase().includes(q)
     );
 
   const paymentLabel: Record<string, string> = { cod: "Cash on Delivery", gcash: "GCash", maya: "Maya" };
@@ -154,7 +157,9 @@ export default function AdminOrders() {
                     {o.status}
                   </td>
                   <td style={{ fontSize: "0.78rem", color: "#9ca3af" }}>
-                    {new Date(o.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {o.createdAt && !isNaN(new Date(o.createdAt).getTime())
+                      ? new Date(o.createdAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                      : "—"}
                   </td>
                   <td>
                     <div className={styles.actionBtns}>
@@ -189,7 +194,7 @@ export default function AdminOrders() {
               <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Phone</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{selected.phone}</p></div>
               <div style={{ gridColumn: "1/-1" }}><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Address</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{selected.address}</p></div>
               <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Payment</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{paymentLabel[selected.payment] || selected.payment}</p></div>
-              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Date</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{new Date(selected.createdAt).toLocaleString("en-PH")}</p></div>
+              <div><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Date</p><p style={{ margin: 0, fontWeight: 700, color: "#000000" }}>{selected.createdAt && !isNaN(new Date(selected.createdAt).getTime()) ? new Date(selected.createdAt).toLocaleString("en-PH") : "—"}</p></div>
               {selected.notes && <div style={{ gridColumn: "1/-1" }}><p style={{ margin: 0, fontSize: "0.78rem", color: "#9ca3af" }}>Notes</p><p style={{ margin: 0, color: "#000000" }}>{selected.notes}</p></div>}
             </div>
 

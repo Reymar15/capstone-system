@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET || "kzens-puto-bumbong-secret-2025";
+const SECRET = process.env.JWT_SECRET || "kzens-puto-bumbong-super-secret-2025";
 
 export type JWTPayload = {
   id: string;
