@@ -1,126 +1,146 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import styles from "../page.module.css";
+import { useState, useRef, useEffect } from "react";
+import Navbar from "../components/Navbar";
+import styles from "./contact.module.css";
+
+type Message = {
+  id: number;
+  from: "user" | "support";
+  text: string;
+  time: string;
+};
+
+const AUTO_REPLIES: Record<string, string> = {
+  default: "Thanks for reaching out! 😊 Our team will get back to you shortly. For urgent concerns, call us at +63 912345678.",
+  order: "For order concerns, please check your order status in My Orders. If there's an issue, we'll resolve it ASAP!",
+  delivery: "Delivery usually takes 30–60 minutes depending on your location. We'll notify you when your order is on the way!",
+  menu: "You can browse our full menu at the Menu page. We have Classic, Special Deluxe, and more! 🍢",
+  hours: "We're open Mon–Sun, 7:00 AM – 8:00 PM. Orders placed after hours will be processed the next morning.",
+  payment: "We accept Cash on Delivery, GCash, and Maya. Payment is collected upon delivery for COD.",
+};
+
+function getAutoReply(text: string): string {
+  const t = text.toLowerCase();
+  if (t.includes("order") || t.includes("cancel")) return AUTO_REPLIES.order;
+  if (t.includes("deliver") || t.includes("shipping") || t.includes("how long")) return AUTO_REPLIES.delivery;
+  if (t.includes("menu") || t.includes("product") || t.includes("price")) return AUTO_REPLIES.menu;
+  if (t.includes("hour") || t.includes("open") || t.includes("close") || t.includes("time")) return AUTO_REPLIES.hours;
+  if (t.includes("pay") || t.includes("gcash") || t.includes("maya") || t.includes("cod")) return AUTO_REPLIES.payment;
+  return AUTO_REPLIES.default;
+}
+
+const now = () => new Date().toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    { id: 0, from: "support", text: "👋 Hi! Welcome to Kzen's Puto Bumbong support. How can we help you today?", time: now() },
+  ]);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Full name is required.";
-    if (!form.email.trim()) e.email = "Email is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email address.";
-    if (!form.phone.trim()) e.phone = "Phone number is required.";
-    if (!form.message.trim()) e.message = "Message is required.";
-    return e;
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, typing]);
+
+  const sendMessage = () => {
+    const text = input.trim();
+    if (!text) return;
+    const userMsg: Message = { id: Date.now(), from: "user", text, time: now() };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setTyping(true);
+    setTimeout(() => {
+      setTyping(false);
+      const reply: Message = { id: Date.now() + 1, from: "support", text: getAutoReply(text), time: now() };
+      setMessages((prev) => [...prev, reply]);
+    }, 1200);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    setErrors({});
-    setSubmitted(true);
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
-  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((p) => ({ ...p, [field]: e.target.value }));
-    setErrors((p) => ({ ...p, [field]: "" }));
-  };
+  const QUICK = ["Track my order", "Delivery time?", "Payment methods", "Opening hours", "View menu"];
 
   return (
-    <main>
-      <section className={styles.contactPage}>
-        <div className={styles.contactHero}>
-          <h1>Contact Us</h1>
-          <p>We&apos;d love to hear from you. Send us a message!</p>
-        </div>
+    <div style={{ background: "#f8f5fa", minHeight: "100vh" }}>
+      <Navbar />
 
-        <div className={styles.contactLayout}>
-          <div className={styles.contactInfo}>
-            <h2>Get in Touch</h2>
-            <div className={styles.contactItem}>
-              <span>📞</span>
-              <div><h4>Phone</h4><p>+63 912345678</p></div>
-            </div>
-            <div className={styles.contactItem}>
-              <span>📧</span>
-              <div><h4>Email</h4><p>kzen@example.com</p></div>
-            </div>
-            <div className={styles.contactItem}>
-              <span>📍</span>
-              <div><h4>Address</h4><p>Cebu City, Philippines</p></div>
-            </div>
-            <div className={styles.contactItem}>
-              <span>🕐</span>
-              <div><h4>Hours</h4><p>Mon–Sun: 7:00 AM – 8:00 PM</p></div>
+      <div className={styles.pageWrapper}>
+        {/* INFO SIDEBAR */}
+        <aside className={styles.sidebar}>
+          <div className={styles.shopCard}>
+            <div className={styles.shopAvatar}>🍢</div>
+            <h2>Kzen&apos;s Puto Bumbong</h2>
+            <p className={styles.shopStatus}><span className={styles.onlineDot} />Usually replies instantly</p>
+          </div>
+          <div className={styles.infoList}>
+            <div className={styles.infoItem}><span>📞</span><div><strong>Phone</strong><p>+63 912345678</p></div></div>
+            <div className={styles.infoItem}><span>📧</span><div><strong>Email</strong><p>kzen@example.com</p></div></div>
+            <div className={styles.infoItem}><span>📍</span><div><strong>Address</strong><p>Cebu City, Philippines</p></div></div>
+            <div className={styles.infoItem}><span>🕐</span><div><strong>Hours</strong><p>Mon–Sun: 7AM – 8PM</p></div></div>
+          </div>
+        </aside>
+
+        {/* CHAT WINDOW */}
+        <div className={styles.chatWindow}>
+          <div className={styles.chatHeader}>
+            <div className={styles.chatAvatar}>🍢</div>
+            <div>
+              <strong>Kzen&apos;s Support</strong>
+              <p>Puto Bumbong · Cebu City</p>
             </div>
           </div>
 
-          {submitted ? (
-            <div className={styles.contactForm} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
-              <span style={{ fontSize: "3rem" }}>✅</span>
-              <h2 style={{ color: "#7b1fa2", margin: 0 }}>Message Sent!</h2>
-              <p style={{ color: "#6b7280", textAlign: "center" }}>Thank you for reaching out. We&apos;ll get back to you soon.</p>
-              <button className={styles.orderBtn} onClick={() => { setSubmitted(false); setForm({ name: "", email: "", phone: "", message: "" }); }}>
-                Send Another
+          <div className={styles.messages}>
+            {messages.map((msg) => (
+              <div key={msg.id} className={`${styles.msgRow} ${msg.from === "user" ? styles.msgRowUser : ""}`}>
+                {msg.from === "support" && <div className={styles.msgAvatar}>🍢</div>}
+                <div className={`${styles.bubble} ${msg.from === "user" ? styles.bubbleUser : styles.bubbleSupport}`}>
+                  <p>{msg.text}</p>
+                  <span className={styles.msgTime}>{msg.time}</span>
+                </div>
+              </div>
+            ))}
+            {typing && (
+              <div className={styles.msgRow}>
+                <div className={styles.msgAvatar}>🍢</div>
+                <div className={`${styles.bubble} ${styles.bubbleSupport} ${styles.typingBubble}`}>
+                  <span /><span /><span />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* QUICK REPLIES */}
+          <div className={styles.quickReplies}>
+            {QUICK.map((q) => (
+              <button key={q} className={styles.quickBtn} onClick={() => { setInput(q); }}>
+                {q}
               </button>
-            </div>
-          ) : (
-            <form className={styles.contactForm} onSubmit={handleSubmit} noValidate>
-              <h2>Send a Message</h2>
-              <div className={styles.formGroup}>
-                <label>Full Name <span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="text" placeholder="Your full name" value={form.name} onChange={set("name")} />
-                {errors.name && <span style={{ color: "#ef4444", fontSize: "0.8rem" }}>{errors.name}</span>}
-              </div>
-              <div className={styles.formGroup}>
-                <label>Email <span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="email" placeholder="your@email.com" value={form.email} onChange={set("email")} />
-                {errors.email && <span style={{ color: "#ef4444", fontSize: "0.8rem" }}>{errors.email}</span>}
-              </div>
-              <div className={styles.formGroup}>
-                <label>Phone <span style={{ color: "#ef4444" }}>*</span></label>
-                <input type="tel" placeholder="+63 9XX XXX XXXX" value={form.phone} onChange={set("phone")} />
-                {errors.phone && <span style={{ color: "#ef4444", fontSize: "0.8rem" }}>{errors.phone}</span>}
-              </div>
-              <div className={styles.formGroup}>
-                <label>Message <span style={{ color: "#ef4444" }}>*</span></label>
-                <textarea rows={5} placeholder="Write your message here..." value={form.message} onChange={set("message")} />
-                {errors.message && <span style={{ color: "#ef4444", fontSize: "0.8rem" }}>{errors.message}</span>}
-              </div>
-              <button type="submit" className={styles.orderBtn}>Send Message</button>
-            </form>
-          )}
-        </div>
-      </section>
+            ))}
+          </div>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerGrid}>
-          <div>
-            <h3>Puto Bumbong</h3>
-            <p>Authentic Filipino purple rice cakes made with love and tradition.</p>
-          </div>
-          <div>
-            <h4>Quick Links</h4>
-            <p><Link href="/" className={styles.footerLink}>Home</Link></p>
-            <p><Link href="/menu" className={styles.footerLink}>Menu</Link></p>
-            <p><Link href="/about" className={styles.footerLink}>About</Link></p>
-            <p><Link href="/contact" className={styles.footerLink}>Contact</Link></p>
-          </div>
-          <div>
-            <h4>Contact</h4>
-            <p>📞 +63 912345678</p>
-            <p>📧 kzen@example.com</p>
-            <p>📍 Cebu City, Philippines</p>
+          <div className={styles.inputRow}>
+            <textarea
+              className={styles.chatInput}
+              placeholder="Type a message..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              rows={1}
+            />
+            <button className={styles.sendBtn} onClick={sendMessage} disabled={!input.trim()}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
           </div>
         </div>
-        <div className={styles.copyright}>© 2025 Puto Bumbong. All rights reserved.</div>
-      </footer>
-    </main>
+      </div>
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Navbar from "../components/Navbar";
 import styles from "../page.module.css";
 import orderStyles from "./order.module.css";
 
@@ -94,28 +95,7 @@ export default function OrderPage() {
 
   return (
     <div>
-      <nav className={styles.navbar}>
-        <Link href="/" className={styles.logoLink}>
-          <h2 className={styles.logo}>Puto Bumbong</h2>
-        </Link>
-        <ul className={styles.navLinks}>
-          <li><Link href="/">Home</Link></li>
-          <li><Link href="/menu">Menu</Link></li>
-          <li><Link href="/about">About</Link></li>
-          <li><Link href="/contact">Contact</Link></li>
-        </ul>
-        <div className={styles.navAuth}>
-          {user ? (
-            <span className={styles.signupBtn}>Hi, {user.firstName}!</span>
-          ) : (
-            <>
-              <Link href="/login" className={styles.loginBtn}>Login</Link>
-              <Link href="/signup" className={styles.signupBtn}>Sign Up</Link>
-            </>
-          )}
-        </div>
-      </nav>
-
+      <Navbar />
       <div className={orderStyles.wrapper}>
 
         {/* ── RECEIPT ── */}

@@ -41,30 +41,6 @@ export default function Home() {
       {/* HERO CAROUSEL */}
       <HeroCarousel />
 
-      {/* ABOUT */}
-      <section className={styles.about}>
-        <div className={styles.aboutContent}>
-          <div className={styles.aboutText}>
-            <h2>Our Story</h2>
-            <p>
-              Kzen's Puto Bumbong started as a family tradition passed down through generations in Cebu.
-              Every piece is handcrafted using authentic bamboo tubes and premium purple glutinous rice,
-              steamed to perfection just like our lola used to make.
-            </p>
-            <p>
-              We believe food is more than nourishment — it's a connection to culture, memory, and love.
-              That's why every order is made fresh, with no shortcuts.
-            </p>
-            <Link href="/menu" className={styles.orderBtn}>
-              Order Now
-            </Link>
-          </div>
-          <div className={styles.aboutImageBox}>
-            <Image src="/classic.jpg" alt="Our Story" fill className={styles.aboutImg} />
-          </div>
-        </div>
-      </section>
-
       {/* BEST SELLERS */}
       <section className={styles.best}>
         <h2>Our Best Sellers</h2>

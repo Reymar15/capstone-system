@@ -3,7 +3,6 @@
   margin: 0 auto;
   padding: 52px 24px 80px;
   min-height: 100vh;
-  background: #7b1fa2;
 }
 
 .pageHeader {
@@ -18,7 +17,7 @@
 }
 
 .pageHeader p {
-  color: white;
+  color: #6b7280;
   margin: 0;
 }
 
@@ -267,4 +266,58 @@
   .cardHeader { padding: 16px; }
   .tracker { padding: 14px 16px 18px; }
   .details { padding: 16px; }
+}
+
+/* REVIEW */
+.reviewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  background: linear-gradient(135deg, #7b1fa2, #c2188b);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.reviewBtn:hover { opacity: 0.88; }
+
+.reviewedBadge {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+}
+
+.reviewModal {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.reviewModal h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0 0 4px;
 }
