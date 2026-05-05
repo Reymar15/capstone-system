@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 
-// GET  /api/chat/messages?userId=xxx   (admin fetches a user's thread)
-// GET  /api/chat/messages?all=1         (admin fetches all messages for conv list)
-// GET  /api/chat/messages              (user fetches their own thread)
 export async function GET(req: NextRequest) {
   const token = req.headers.get("authorization")?.split(" ")[1];
   const caller = token ? verifyToken(token) : null;
@@ -14,45 +11,63 @@ export async function GET(req: NextRequest) {
   const userId = searchParams.get("userId");
   const all = searchParams.get("all");
 
+  // Admin: fetch ALL messages to build conversation list
   if (caller.role === "admin" && all === "1") {
-    // Return all chat messages so admin can build conversation list
     const { data, error } = await supabase
       .from("chat_messages")
       .select("*")
       .order("created_at", { ascending: true });
-    if (error) return NextResponse.json({ error: "Failed to fetch messages." }, { status: 500 });
+    if (error) return NextResponse.json([], { status: 200 });
     return NextResponse.json(data || []);
   }
 
-  let query = supabase
-    .from("chat_messages")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  if (caller.role === "admin") {
-    const uid = userId || caller.id;
-    query = query.or(
-      `and(sender_id.eq.${uid},receiver_id.eq.admin),and(sender_id.eq.admin,receiver_id.eq.${uid})`
-    );
-  } else {
-    query = query.or(
-      `and(sender_id.eq.${caller.id},receiver_id.eq.admin),and(sender_id.eq.admin,receiver_id.eq.${caller.id})`
-    );
-    // Mark admin messages to this user as read
-    await supabase
+  // Admin: fetch thread for a specific user
+  if (caller.role === "admin" && userId) {
+    const { data: sent } = await supabase
       .from("chat_messages")
-      .update({ is_read: true })
+      .select("*")
+      .eq("sender_id", userId)
+      .eq("receiver_id", "admin");
+
+    const { data: received } = await supabase
+      .from("chat_messages")
+      .select("*")
       .eq("sender_id", "admin")
-      .eq("receiver_id", caller.id)
-      .eq("is_read", false);
+      .eq("receiver_id", userId);
+
+    const all = [...(sent || []), ...(received || [])].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    return NextResponse.json(all);
   }
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: "Failed to fetch messages." }, { status: 500 });
-  return NextResponse.json(data || []);
+  // User: fetch their own thread with admin
+  const { data: sent } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("sender_id", caller.id)
+    .eq("receiver_id", "admin");
+
+  const { data: received } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("sender_id", "admin")
+    .eq("receiver_id", caller.id);
+
+  // Mark admin replies as read
+  await supabase
+    .from("chat_messages")
+    .update({ is_read: true })
+    .eq("sender_id", "admin")
+    .eq("receiver_id", caller.id)
+    .eq("is_read", false);
+
+  const thread = [...(sent || []), ...(received || [])].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+  return NextResponse.json(thread);
 }
 
-// POST /api/chat/messages
 export async function POST(req: NextRequest) {
   const token = req.headers.get("authorization")?.split(" ")[1];
   const caller = token ? verifyToken(token) : null;
@@ -87,7 +102,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data, { status: 201 });
 }
 
-// PATCH /api/chat/messages  — mark all messages from admin to user as read
 export async function PATCH(req: NextRequest) {
   const token = req.headers.get("authorization")?.split(" ")[1];
   const caller = token ? verifyToken(token) : null;
@@ -99,7 +113,8 @@ export async function PATCH(req: NextRequest) {
   await supabase
     .from("chat_messages")
     .update({ is_read: true })
-    .eq("receiver_id", uid)
+    .eq("sender_id", uid)
+    .eq("receiver_id", "admin")
     .eq("is_read", false);
 
   return NextResponse.json({ success: true });

@@ -5,23 +5,21 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import AdminLayout from "../AdminLayout";
 import styles from "../admin.module.css";
-import msgStyles from "./messages.module.css";
+import m from "./messages.module.css";
 
-type ChatMsg = {
+type Msg = {
   id: string;
   sender_id: string;
-  sender_role: string;
   receiver_id: string;
   message: string;
   is_read: boolean;
   created_at: string;
-  replied_at: string | null;
 };
 
-type Conversation = {
+type Conv = {
   userId: string;
-  userName: string;
-  lastMessage: string;
+  name: string;
+  lastMsg: string;
   lastTime: string;
   unread: number;
 };
@@ -30,238 +28,285 @@ const fmt = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
 
 const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric" });
+  new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
 
-function dateDivider(msgs: ChatMsg[], idx: number) {
-  if (idx === 0) return true;
-  return new Date(msgs[idx - 1].created_at).toDateString() !== new Date(msgs[idx].created_at).toDateString();
+function showDateDivider(msgs: Msg[], i: number) {
+  if (i === 0) return true;
+  return new Date(msgs[i - 1].created_at).toDateString() !== new Date(msgs[i].created_at).toDateString();
 }
 
 export default function AdminMessages() {
   const { user, token } = useAuth();
   const router = useRouter();
 
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeUserId, setActiveUserId] = useState<string | null>(null);
-  const [thread, setThread] = useState<ChatMsg[]>([]);
+  const [convs, setConvs] = useState<Conv[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [thread, setThread] = useState<Msg[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [loadingConvs, setLoadingConvs] = useState(true);
+  const [loadingThread, setLoadingThread] = useState(false);
+  const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
-  const userNamesRef = useRef<Record<string, string>>({});
+  const namesRef = useRef<Record<string, string>>({});
+  const activeIdRef = useRef<string | null>(null);
 
-  // Keep ref in sync so fetchAllMessages can use latest names without re-creating
-  useEffect(() => {
-    userNamesRef.current = userNames;
-  }, [userNames]);
+  activeIdRef.current = activeId;
 
-  const fetchUsers = useCallback(async () => {
+  // ── fetch user names once ──────────────────────────────────
+  const loadNames = useCallback(async () => {
     if (!token) return;
-    const res = await fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return;
-    const data = await res.json();
-    const map: Record<string, string> = {};
-    for (const u of data) map[u.id] = `${u.firstName} ${u.lastName}`.trim();
-    setUserNames(map);
-    userNamesRef.current = map;
+    try {
+      const res = await fetch("/api/admin/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const map: Record<string, string> = {};
+      for (const u of data) map[u.id] = `${u.firstName} ${u.lastName}`.trim();
+      setNames(map);
+      namesRef.current = map;
+    } catch { /* silent */ }
   }, [token]);
 
-  const fetchAllMessages = useCallback(async () => {
+  // ── build conversation list from all messages ──────────────
+  const loadConvs = useCallback(async () => {
     if (!token) return;
-    const res = await fetch("/api/chat/messages?all=1", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) { setLoading(false); return; }
-    const data: ChatMsg[] = await res.json();
-    if (!Array.isArray(data)) { setLoading(false); return; }
+    try {
+      const res = await fetch("/api/chat/messages?all=1", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { setError("Failed to load conversations."); setLoadingConvs(false); return; }
+      const data: Msg[] = await res.json();
+      if (!Array.isArray(data)) { setLoadingConvs(false); return; }
 
-    const names = userNamesRef.current;
-    const convMap: Record<string, ChatMsg[]> = {};
-    for (const m of data) {
-      const uid = m.sender_id === "admin" ? m.receiver_id : m.sender_id;
-      if (!convMap[uid]) convMap[uid] = [];
-      convMap[uid].push(m);
+      const map: Record<string, Msg[]> = {};
+      for (const msg of data) {
+        const uid = msg.sender_id === "admin" ? msg.receiver_id : msg.sender_id;
+        if (!map[uid]) map[uid] = [];
+        map[uid].push(msg);
+      }
+
+      const list: Conv[] = Object.entries(map).map(([uid, msgs]) => {
+        const sorted = [...msgs].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        return {
+          userId: uid,
+          name: namesRef.current[uid] || "User",
+          lastMsg: sorted[0]?.message || "",
+          lastTime: sorted[0]?.created_at || "",
+          unread: msgs.filter((msg) => msg.sender_id !== "admin" && !msg.is_read).length,
+        };
+      }).sort((a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime());
+
+      setConvs(list);
+      setLoadingConvs(false);
+    } catch {
+      setError("Failed to load conversations.");
+      setLoadingConvs(false);
     }
-
-    const convList: Conversation[] = Object.entries(convMap).map(([uid, msgs]) => {
-      const sorted = [...msgs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      const unread = msgs.filter((m) => m.sender_id !== "admin" && !m.is_read).length;
-      return {
-        userId: uid,
-        userName: names[uid] || "User",
-        lastMessage: sorted[0]?.message || "",
-        lastTime: sorted[0]?.created_at || "",
-        unread,
-      };
-    }).sort((a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime());
-
-    setConversations(convList);
-    setLoading(false);
   }, [token]);
 
-  const fetchThread = useCallback(async (userId: string) => {
+  // ── fetch thread for active user ───────────────────────────
+  const loadThread = useCallback(async (uid: string) => {
     if (!token) return;
-    const res = await fetch(`/api/chat/messages?userId=${userId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return;
-    const data = await res.json();
-    setThread(Array.isArray(data) ? data : []);
-    await fetch("/api/chat/messages", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ userId }),
-    });
-    setConversations((prev) => prev.map((c) => c.userId === userId ? { ...c, unread: 0 } : c));
+    setLoadingThread(true);
+    try {
+      const res = await fetch(`/api/chat/messages?userId=${uid}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setThread(Array.isArray(data) ? data : []);
+      // mark as read
+      await fetch("/api/chat/messages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId: uid }),
+      });
+      setConvs((prev) => prev.map((c) => c.userId === uid ? { ...c, unread: 0 } : c));
+    } catch { /* silent */ }
+    finally { setLoadingThread(false); }
   }, [token]);
 
-  // Initial load
+  // ── initial load ───────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     if (user.role !== "admin") { router.push("/"); return; }
-    fetchUsers().then(() => fetchAllMessages());
-  }, [user, router, fetchUsers, fetchAllMessages]);
+    loadNames().then(loadConvs);
+  }, [user, router, loadNames, loadConvs]);
 
-  // Poll for new messages
+  // ── poll conversations every 5s ────────────────────────────
   useEffect(() => {
     if (!token) return;
-    const t = setInterval(fetchAllMessages, 4000);
+    const t = setInterval(loadConvs, 5000);
     return () => clearInterval(t);
-  }, [token, fetchAllMessages]);
+  }, [token, loadConvs]);
 
-  // Poll active thread
+  // ── poll active thread every 3s ────────────────────────────
   useEffect(() => {
-    if (!activeUserId) return;
-    fetchThread(activeUserId);
-    const t = setInterval(() => fetchThread(activeUserId), 3000);
+    if (!activeId) return;
+    const t = setInterval(() => loadThread(activeId), 3000);
     return () => clearInterval(t);
-  }, [activeUserId, fetchThread]);
+  }, [activeId, loadThread]);
 
+  // ── scroll to bottom on new messages ──────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [thread]);
 
-  const openConversation = (userId: string) => {
-    setActiveUserId(userId);
+  const openConv = (uid: string) => {
+    setActiveId(uid);
     setInput("");
+    loadThread(uid);
   };
 
-  const sendReply = async () => {
+  const send = async () => {
     const text = input.trim();
-    if (!text || !activeUserId || sending) return;
+    if (!text || !activeId || sending) return;
     setSending(true);
     setInput("");
-    const res = await fetch("/api/chat/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ message: text, receiverId: activeUserId }),
-    });
-    if (res.ok) {
-      const msg = await res.json();
-      setThread((prev) => [...prev, msg]);
-    }
+    try {
+      const res = await fetch("/api/chat/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message: text, receiverId: activeId }),
+      });
+      if (res.ok) {
+        const msg = await res.json();
+        setThread((prev) => [...prev, msg]);
+        setConvs((prev) =>
+          prev.map((c) =>
+            c.userId === activeId ? { ...c, lastMsg: text, lastTime: msg.created_at } : c
+          )
+        );
+      }
+    } catch { /* silent */ }
     setSending(false);
   };
 
-  const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); }
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
   };
 
-  const activeConv = conversations.find((c) => c.userId === activeUserId);
-  const totalUnread = conversations.reduce((s, c) => s + c.unread, 0);
-
-  if (loading) return (
-    <AdminLayout>
-      <div className={styles.loading}>Loading messages...</div>
-    </AdminLayout>
-  );
+  const activeConv = convs.find((c) => c.userId === activeId);
+  const totalUnread = convs.reduce((s, c) => s + c.unread, 0);
 
   return (
     <AdminLayout>
       <div className={styles.pageHeader}>
         <div>
           <h1>Messages</h1>
-          <p>{conversations.length} conversations · {totalUnread} unread</p>
+          <p>
+            {loadingConvs ? "Loading…" : `${convs.length} conversations`}
+            {totalUnread > 0 && ` · ${totalUnread} unread`}
+          </p>
         </div>
       </div>
 
-      <div className={msgStyles.container}>
-        {/* CONVERSATION LIST */}
-        <div className={msgStyles.convList}>
-          <div className={msgStyles.convListHeader}>Conversations</div>
-          {conversations.length === 0 && (
-            <div className={msgStyles.noConv}>No messages yet.</div>
-          )}
-          {conversations.map((c) => (
-            <div
-              key={c.userId}
-              className={`${msgStyles.convItem} ${activeUserId === c.userId ? msgStyles.convItemActive : ""}`}
-              onClick={() => openConversation(c.userId)}
-            >
-              <div className={msgStyles.convAvatar}>
-                {(c.userName || "U")[0].toUpperCase()}
+      {error && (
+        <div className={m.errorBanner}>⚠️ {error}</div>
+      )}
+
+      <div className={m.container}>
+        {/* ── CONVERSATION LIST ── */}
+        <div className={m.sidebar}>
+          <div className={m.sidebarHeader}>
+            <span>Conversations</span>
+            {totalUnread > 0 && <span className={m.totalBadge}>{totalUnread}</span>}
+          </div>
+
+          <div className={m.convScroll}>
+            {loadingConvs && (
+              <div className={m.sidebarEmpty}>
+                <div className={m.spinner} />
+                <p>Loading…</p>
               </div>
-              <div className={msgStyles.convInfo}>
-                <div className={msgStyles.convName}>
-                  {c.userName}
-                  {c.unread > 0 && <span className={msgStyles.unreadBadge}>{c.unread}</span>}
+            )}
+            {!loadingConvs && convs.length === 0 && (
+              <div className={m.sidebarEmpty}>
+                <span>💬</span>
+                <p>No messages yet</p>
+              </div>
+            )}
+            {convs.map((c) => (
+              <button
+                key={c.userId}
+                className={`${m.convItem} ${activeId === c.userId ? m.convActive : ""}`}
+                onClick={() => openConv(c.userId)}
+              >
+                <div className={m.avatar}>{(c.name || "U")[0].toUpperCase()}</div>
+                <div className={m.convMeta}>
+                  <div className={m.convTop}>
+                    <span className={m.convName}>{c.name}</span>
+                    <span className={m.convTime}>
+                      {c.lastTime ? fmt(c.lastTime) : ""}
+                    </span>
+                  </div>
+                  <div className={m.convBottom}>
+                    <span className={m.convPreview}>
+                      {c.lastMsg.length > 38 ? c.lastMsg.slice(0, 38) + "…" : c.lastMsg}
+                    </span>
+                    {c.unread > 0 && <span className={m.badge}>{c.unread}</span>}
+                  </div>
                 </div>
-                <div className={msgStyles.convPreview}>
-                  {c.lastMessage.length > 40 ? c.lastMessage.slice(0, 40) + "…" : c.lastMessage}
-                </div>
-              </div>
-              <div className={msgStyles.convTime}>
-                {c.lastTime && !isNaN(new Date(c.lastTime).getTime()) ? fmt(c.lastTime) : ""}
-              </div>
-            </div>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* CHAT PANEL */}
-        <div className={msgStyles.chatPanel}>
-          {!activeUserId ? (
-            <div className={msgStyles.noChatSelected}>
+        {/* ── CHAT PANEL ── */}
+        <div className={m.chat}>
+          {!activeId ? (
+            <div className={m.empty}>
               <span>💬</span>
-              <p>Select a conversation to start replying</p>
+              <p>Select a conversation to reply</p>
             </div>
           ) : (
             <>
-              <div className={msgStyles.chatHeader}>
-                <div className={msgStyles.chatHeaderAvatar}>
-                  {(userNames[activeUserId] || "U")[0].toUpperCase()}
+              {/* header */}
+              <div className={m.chatHeader}>
+                <div className={m.chatAvatar}>
+                  {(names[activeId] || "U")[0].toUpperCase()}
                 </div>
                 <div>
-                  <strong>{userNames[activeUserId] || activeConv?.userName || activeUserId}</strong>
+                  <strong>{names[activeId] || activeConv?.name || activeId}</strong>
                   <p>Customer</p>
                 </div>
               </div>
 
-              <div className={msgStyles.messages}>
-                {thread.length === 0 && (
-                  <div className={msgStyles.emptyThread}>No messages in this conversation yet.</div>
+              {/* messages */}
+              <div className={m.messages}>
+                {loadingThread && (
+                  <div className={m.threadLoading}>
+                    <div className={m.spinner} />
+                  </div>
+                )}
+                {!loadingThread && thread.length === 0 && (
+                  <div className={m.threadEmpty}>No messages yet in this conversation.</div>
                 )}
                 {thread.map((msg, idx) => {
-                  const isAdmin = msg.sender_id === "admin";
-                  const showDate = dateDivider(thread, idx);
+                  const mine = msg.sender_id === "admin";
                   return (
                     <div key={msg.id}>
-                      {showDate && (
-                        <div className={msgStyles.dateDivider}>
+                      {showDateDivider(thread, idx) && (
+                        <div className={m.dateDivider}>
                           <span>{fmtDate(msg.created_at)}</span>
                         </div>
                       )}
-                      <div className={`${msgStyles.msgRow} ${isAdmin ? msgStyles.msgRowAdmin : ""}`}>
-                        {!isAdmin && (
-                          <div className={msgStyles.msgAvatar}>
-                            {(userNames[msg.sender_id] || "U")[0].toUpperCase()}
+                      <div className={`${m.row} ${mine ? m.rowMine : m.rowTheirs}`}>
+                        {!mine && (
+                          <div className={m.msgAvatar}>
+                            {(names[msg.sender_id] || "U")[0].toUpperCase()}
                           </div>
                         )}
-                        <div className={`${msgStyles.bubble} ${isAdmin ? msgStyles.bubbleAdmin : msgStyles.bubbleUser}`}>
+                        <div className={`${m.bubble} ${mine ? m.bubbleMine : m.bubbleTheirs}`}>
                           <p>{msg.message}</p>
-                          <span className={msgStyles.msgTime}>
+                          <span className={m.time}>
                             {fmt(msg.created_at)}
-                            {isAdmin && <span>{msg.is_read ? " ✓✓" : " ✓"}</span>}
+                            {mine && <span>{msg.is_read ? " ✓✓" : " ✓"}</span>}
                           </span>
                         </div>
                       </div>
@@ -271,20 +316,17 @@ export default function AdminMessages() {
                 <div ref={bottomRef} />
               </div>
 
-              <div className={msgStyles.inputRow}>
+              {/* input */}
+              <div className={m.inputRow}>
                 <textarea
-                  className={msgStyles.chatInput}
-                  placeholder={`Reply to ${activeConv?.userName || "user"}...`}
+                  className={m.input}
+                  placeholder={`Reply to ${activeConv?.name || "user"}…`}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKey}
+                  onKeyDown={onKey}
                   rows={1}
                 />
-                <button
-                  className={msgStyles.sendBtn}
-                  onClick={sendReply}
-                  disabled={!input.trim() || sending}
-                >
+                <button className={m.sendBtn} onClick={send} disabled={!input.trim() || sending}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13" />
                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
