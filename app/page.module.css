@@ -675,6 +675,22 @@
 .filterBtnActive { background: #7b1fa2 !important; color: white !important; border-color: #7b1fa2 !important; }
 
 /* ── CONTACT PAGE ────────────────────────────────────────── */
+.menuPage .products {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-items: stretch;
+  justify-content: initial;
+}
+
+.menuPage .card {
+  min-width: 0;
+  height: 100%;
+}
+
+.menuPage .priceRow {
+  flex-wrap: wrap;
+}
+
 .contactPage { padding-bottom: 80px; }
 
 .contactHero {
@@ -757,4 +773,8 @@
   .navLinks { display: none; }
   .heroOverlay h1 { font-size: 1.8rem; }
   .products { justify-content: center; max-width: 360px; }
+  .menuPage .products {
+    grid-template-columns: 1fr;
+    max-width: 360px;
+  }
 }

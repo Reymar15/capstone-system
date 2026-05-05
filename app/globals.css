@@ -1,120 +1,37 @@
 @import "tailwindcss";
 
-/* ── DESIGN TOKENS ───────────────────────────────────────── */
 :root {
-  --brand:        #7b1fa2;
-  --brand-dark:   #6a1b9a;
-  --brand-light:  #f3e5f5;
-  --accent:       #c2188b;
-  --bg:           #ffffff;
-  --bg-soft:      #f8f5fa;
-  --text:         #1a1a2e;
-  --text-muted:   #6b7280;
-  --text-light:   #9ca3af;
-  --border:       #e9d5ff;
-  --border-soft:  #f3e5f5;
-  --shadow-sm:    0 1px 4px rgba(0,0,0,0.06);
-  --shadow-md:    0 4px 16px rgba(106,27,154,0.10);
-  --shadow-lg:    0 8px 32px rgba(106,27,154,0.14);
-  --radius-sm:    8px;
-  --radius-md:    12px;
-  --radius-lg:    20px;
-  --radius-xl:    24px;
-  --gradient:     linear-gradient(135deg, #7b1fa2, #c2188b);
-  --max-w:        1200px;
-  --nav-h:        60px;
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
-/* ── RESET & BASE ────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
-
-html {
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Geist", "Inter", system-ui, -apple-system, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
+  background: #ffffff;
+  color: #171717;
+  font-family: Arial, Helvetica, sans-serif;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
-main { flex: 1; }
-
-img, video { max-width: 100%; display: block; }
-
-a { color: inherit; }
-
-button, input, textarea, select {
-  font-family: inherit;
-  font-size: inherit;
+main {
+  flex: 1;
+  background: #ffffff;
 }
 
-/* ── SCROLLBAR ───────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #c4b5fd; }
-
-/* ── FOCUS RING ──────────────────────────────────────────── */
-:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 2px;
+/* Prevent flex from affecting navbar internals */
+nav {
+  display: flex !important;
+  flex-direction: row !important;
 }
 
-/* ── SELECTION ───────────────────────────────────────────── */
-::selection {
-  background: #e9d5ff;
-  color: var(--brand-dark);
-}
-
-/* ── UTILITY ─────────────────────────────────────────────── */
-.sr-only {
-  position: absolute; width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-}
-
-/* ── LOADING SPINNER ─────────────────────────────────────── */
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.spinner {
-  width: 20px; height: 20px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  display: inline-block;
-}
-
-.spinner-dark {
-  border-color: rgba(123,31,162,0.2);
-  border-top-color: var(--brand);
-}
-
-/* ── PAGE LOADING ────────────────────────────────────────── */
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-
-.skeleton {
-  background: linear-gradient(90deg, #f3e5f5 25%, #ede9fe 50%, #f3e5f5 75%);
-  background-size: 400px 100%;
-  animation: shimmer 1.4s ease infinite;
-  border-radius: var(--radius-sm);
-}
-
-/* ── PRINT ───────────────────────────────────────────────── */
 @media print {
-  nav, .no-print { display: none !important; }
-  body { background: white; color: black; }
+  nav { display: none !important; }
 }
