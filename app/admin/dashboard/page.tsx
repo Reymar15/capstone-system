@@ -149,30 +149,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* QUICK LINKS */}
-      <div className={dash.quickLinks}>
-        <Link href="/admin/orders" className={dash.quickCard}>
-          <span>📦</span>
-          <p>Manage Orders</p>
-        </Link>
-        <Link href="/admin/products" className={dash.quickCard}>
-          <span>🍡</span>
-          <p>Manage Products</p>
-        </Link>
-        <Link href="/admin/users" className={dash.quickCard}>
-          <span>👥</span>
-          <p>Manage Users</p>
-        </Link>
-        <Link href="/admin/messages" className={dash.quickCard}>
-          <span>💬</span>
-          <p>Messages {stats.messages > 0 && <span style={{ background: "#ef4444", color: "white", borderRadius: "999px", padding: "1px 7px", fontSize: "0.72rem", fontWeight: 700, marginLeft: 4 }}>{stats.messages}</span>}</p>
-        </Link>
-        <Link href="/" className={dash.quickCard}>
-          <span>🌐</span>
-          <p>View Website</p>
-        </Link>
-      </div>
-
       {/* RECENT ORDERS TABLE */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>

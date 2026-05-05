@@ -3,7 +3,7 @@
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 /* STAT CARD */
@@ -138,10 +138,8 @@
 
 @media (max-width: 1200px) {
   .statsGrid { grid-template-columns: repeat(3, 1fr); }
-  .quickLinks { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 768px) {
   .statsGrid { grid-template-columns: repeat(2, 1fr); }
-  .quickLinks { grid-template-columns: repeat(2, 1fr); }
 }
