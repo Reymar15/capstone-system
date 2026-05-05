@@ -7,12 +7,12 @@ import Navbar from "../components/Navbar";
 import msgStyles from "./messages.module.css";
 
 type Message = {
-  id: number;
+  id: string;
   sender_id: string;
-  sender_name: string;
   sender_role: string;
-  recipient_id: string | null;
+  receiver_id: string;
   message: string;
+  is_read: boolean;
   created_at: string;
 };
 
@@ -29,10 +29,10 @@ export default function MessagesPage() {
   const fetchMessages = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch("/api/messages", {
+      const res = await fetch("/api/chat/messages", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) { setLoading(false); return; }
+      if (!res.ok) return;
       const data = await res.json();
       if (Array.isArray(data)) setMessages(data);
     } catch (err) {
@@ -46,7 +46,7 @@ export default function MessagesPage() {
     if (!user) { router.push("/login"); return; }
     if (!token) return;
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000);
+    const interval = setInterval(fetchMessages, 4000);
     return () => clearInterval(interval);
   }, [user, token, fetchMessages, router]);
 
@@ -60,7 +60,7 @@ export default function MessagesPage() {
     setSending(true);
     setError("");
     try {
-      const res = await fetch("/api/messages", {
+      const res = await fetch("/api/chat/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -76,7 +76,7 @@ export default function MessagesPage() {
         fetchMessages();
       }
     } catch (err) {
-      console.error("handleSend error:", err);
+      console.error("send error:", err);
       setError("Network error. Please try again.");
     } finally {
       setSending(false);
@@ -104,22 +104,19 @@ export default function MessagesPage() {
             <p className={msgStyles.empty}>No messages yet. Say hello! 👋</p>
           )}
           {messages.map((msg) => {
-            const isMe = msg.sender_role === "customer" && msg.sender_id === user?.id;
+            const isMe = msg.sender_role === "customer";
             const isAdmin = msg.sender_role === "admin";
             return (
-              <div
-                key={msg.id}
-                className={`${msgStyles.msgRow} ${isMe ? msgStyles.msgRowRight : msgStyles.msgRowLeft}`}
-              >
+              <div key={msg.id} className={`${msgStyles.msgRow} ${isMe ? msgStyles.msgRowRight : msgStyles.msgRowLeft}`}>
                 {!isMe && (
                   <div className={msgStyles.avatar}>
-                    {isAdmin ? "👑" : msg.sender_name?.[0]?.toUpperCase() ?? "?"}
+                    {isAdmin ? "👑" : "?"}
                   </div>
                 )}
                 <div className={`${msgStyles.bubble} ${isMe ? msgStyles.bubbleMe : isAdmin ? msgStyles.bubbleAdmin : msgStyles.bubbleOther}`}>
                   {!isMe && (
                     <span className={msgStyles.senderName}>
-                      {isAdmin ? "Kzen's Support" : msg.sender_name}
+                      {isAdmin ? "Kzen's Support" : "Support"}
                     </span>
                   )}
                   <p>{msg.message}</p>
