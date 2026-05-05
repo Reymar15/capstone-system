@@ -14,14 +14,14 @@ const bestSellers = [
     name: "Classic Puto Bumbong",
     desc: "Traditional purple rice cake topped with butter, coconut and muscovado sugar.",
     price: 100,
-    img: "/classic.jpg",
+    img: "/menu-images/classic-puto-bumbong.jpg",
     badge: "Best Seller",
   },
   {
     name: "Special Deluxe",
     desc: "Soft puto bumbong topped with cheese, butter and coconut.",
     price: 100,
-    img: "/deluxe.jpg",
+    img: "/menu-images/special-deluxe.jpg",
     badge: "Popular",
   },
 ];

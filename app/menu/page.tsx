@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { useToast } from "../context/ToastContext";
@@ -24,6 +23,24 @@ type Product = {
 type ReviewSummary = { avg: number; count: number };
 
 const categories = ["All", "Classic", "Special", "Ube"];
+
+const productImageMap: Record<string, string> = {
+  "cheese overload": "/menu-images/cheese-overload.jpg",
+  "special deluxe": "/menu-images/special-deluxe.jpg",
+  "party tray": "/menu-images/party-tray.jpg",
+  "classic puto bumbong": "/menu-images/classic-puto-bumbong.jpg",
+  "latik special": "/menu-images/pizza.jpg",
+  "pizza": "/classic.jpg",
+};
+
+function getProductImage(name: string, fallback: string) {
+  const normalized = name
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, "")
+    .trim();
+
+  return productImageMap[normalized] || fallback;
+}
 
 function StarDisplay({ avg, count }: { avg: number; count: number }) {
   const full = Math.floor(avg);
@@ -83,7 +100,7 @@ export default function MenuPage() {
       warning(`"${item.name}" is currently unavailable.`);
       return;
     }
-    addToCart({ name: item.name, price: item.price, img: item.image });
+    addToCart({ name: item.name, price: item.price, img: getProductImage(item.name, item.image) });
     success(`"${item.name}" added to cart! 🛒`);
   };
 
@@ -145,7 +162,7 @@ export default function MenuPage() {
                 key={item.id}
               >
                 <div className={styles.imgWrapper}>
-                  <Image src={item.image} alt={item.name} fill className={styles.productImg} />
+                  <Image src={getProductImage(item.name, item.image)} alt={item.name} fill className={styles.productImg} />
                   {item.badge && <span className={styles.badge}>{item.badge}</span>}
 
                   {/* AVAILABILITY BADGE */}
