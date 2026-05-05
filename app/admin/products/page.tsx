@@ -14,7 +14,18 @@ type Product = {
   stock: number; available: boolean;
 };
 
-const empty = { name: "", description: "", price: "", category: "Classic", image: "/classic.jpg", stock: "", available: true };
+const empty = { name: "", description: "", price: "", category: "Classic", image: "/menu-images/classic-puto-bumbong.jpg", stock: "", available: true };
+
+const imageOptions = [
+  { value: "/menu-images/classic-puto-bumbong.jpg", label: "Classic Puto Bumbong" },
+  { value: "/menu-images/special-deluxe.jpg", label: "Special Deluxe" },
+  { value: "/menu-images/cheese-overload.jpg", label: "Cheese Overload" },
+  { value: "/menu-images/pizza.jpg", label: "Latik Special" },
+  { value: "/menu-images/party-tray.jpg", label: "Party Tray" },
+  { value: "/classic.jpg", label: "classic.jpg" },
+  { value: "/deluxe.jpg", label: "deluxe.jpg" },
+  { value: "/hero.jpg", label: "hero.jpg" },
+];
 
 export default function AdminProducts() {
   const { user, token } = useAuth();
@@ -214,9 +225,9 @@ export default function AdminProducts() {
               <div className={styles.formGroup}>
                 <label>Image Path</label>
                 <select value={form.image} onChange={set("image")}>
-                  <option value="/classic.jpg">classic.jpg</option>
-                  <option value="/deluxe.jpg">deluxe.jpg</option>
-                  <option value="/hero.jpg">hero.jpg</option>
+                  {imageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
               </div>
               <div className={styles.formGroup}>

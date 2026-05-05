@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     description: body.description.trim(),
     price: Number(body.price),
     category: body.category,
-    image: body.image || "/classic.jpg",
+    image: body.image || "/menu-images/classic-puto-bumbong.jpg",
     stock: Number(body.stock),
     available: Number(body.stock) > 0,
   };

@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS products (
   description TEXT           NOT NULL DEFAULT '',
   price       NUMERIC(10,2)  NOT NULL DEFAULT 0,
   category    TEXT           NOT NULL DEFAULT 'Classic',
-  image       TEXT           NOT NULL DEFAULT '/classic.jpg',
+  image       TEXT           NOT NULL DEFAULT '/menu-images/classic-puto-bumbong.jpg',
   stock       INTEGER        NOT NULL DEFAULT 0,
   available   BOOLEAN        NOT NULL DEFAULT TRUE,
   created_at  TIMESTAMPTZ    NOT NULL DEFAULT NOW()
@@ -172,10 +172,10 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Sample products
 INSERT INTO products (id, name, description, price, category, image, stock, available) VALUES
-('1','Classic Puto Bumbong','Traditional purple rice cake topped with butter, coconut and muscovado sugar.',100,'Classic','/classic.jpg',50,TRUE),
-('2','Special Deluxe','Soft puto bumbong topped with cheese, butter and coconut.',100,'Special','/deluxe.jpg',40,TRUE),
-('3','Cheese Overload','Extra generous cheese topping with butter and coconut flakes.',120,'Special','/classic.jpg',30,TRUE),
+('1','Classic Puto Bumbong','Traditional purple rice cake topped with butter, coconut and muscovado sugar.',100,'Classic','/menu-images/classic-puto-bumbong.jpg',50,TRUE),
+('2','Special Deluxe','Soft puto bumbong topped with cheese, butter and coconut.',100,'Special','/menu-images/special-deluxe.jpg',40,TRUE),
+('3','Cheese Overload','Extra generous cheese topping with butter and coconut flakes.',120,'Special','/menu-images/cheese-overload.jpg',30,TRUE),
 ('4','Ube Swirl','Purple rice cake with ube halaya filling and coconut topping.',130,'Ube','/deluxe.jpg',25,TRUE),
-('5','Latik Special','Topped with rich latik (coconut caramel) and muscovado sugar.',115,'Classic','/classic.jpg',35,TRUE),
-('6','Party Tray (12 pcs)','Perfect for celebrations. Assorted flavors in one tray.',550,'Special','/deluxe.jpg',15,TRUE)
+('5','Latik Special','Topped with rich latik (coconut caramel) and muscovado sugar.',115,'Classic','/menu-images/pizza.jpg',35,TRUE),
+('6','Party Tray (12 pcs)','Perfect for celebrations. Assorted flavors in one tray.',550,'Special','/menu-images/party-tray.jpg',15,TRUE)
 ON CONFLICT (id) DO NOTHING;
