@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 
-// GET /api/reviews                  — all reviews (public)
-// GET /api/reviews?productName=xxx  — reviews for a specific product
-// GET /api/reviews?userId=xxx       — reviews by a user (admin)
-// GET /api/reviews?orderId=xxx      — check if order already reviewed
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const productName = searchParams.get("productName");
@@ -14,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from("reviews")
-    .select("id, order_id, user_id, product_name, rating, comment, created_at, users(first_name, last_name)")
+    .select("id, order_id, user_id, product_name, rating, comment, created_at")
     .order("created_at", { ascending: false });
 
   if (productName) query = query.ilike("product_name", `%${productName}%`);
@@ -24,8 +20,21 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: "Failed to fetch reviews." }, { status: 500 });
 
+  const reviews = data || [];
+
+  // Fetch user names separately to avoid join/RLS issues
+  const userIds = [...new Set(reviews.map((r) => r.user_id).filter(Boolean))];
+  const { data: users } = userIds.length
+    ? await supabase.from("users").select("id, first_name, last_name").in("id", userIds)
+    : { data: [] };
+
+  const nameMap: Record<string, string> = {};
+  for (const u of users || []) {
+    nameMap[u.id] = `${u.first_name || ""} ${u.last_name || ""}`.trim();
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapped = (data || []).map((r: any) => ({
+  const mapped = reviews.map((r: any) => ({
     id: r.id,
     orderId: r.order_id,
     userId: r.user_id,
@@ -33,7 +42,7 @@ export async function GET(req: NextRequest) {
     rating: r.rating,
     comment: r.comment,
     createdAt: r.created_at,
-    userName: r.users ? `${r.users.first_name} ${r.users.last_name}` : "Anonymous",
+    userName: nameMap[r.user_id] || "Anonymous",
   }));
 
   return NextResponse.json(mapped);
@@ -49,7 +58,6 @@ export async function POST(req: NextRequest) {
   if (!rating || rating < 1 || rating > 5) return NextResponse.json({ error: "Rating must be 1–5." }, { status: 400 });
   if (!comment?.trim()) return NextResponse.json({ error: "Please write a review." }, { status: 400 });
 
-  // Verify order belongs to user and is Completed
   const { data: order } = await supabase
     .from("orders")
     .select("id, status, user_id, order_items(name)")
@@ -61,7 +69,6 @@ export async function POST(req: NextRequest) {
   if (order.status !== "Completed")
     return NextResponse.json({ error: "You can only review completed orders." }, { status: 400 });
 
-  // Check not already reviewed
   const { data: existing } = await supabase
     .from("reviews")
     .select("id")
@@ -69,7 +76,6 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (existing) return NextResponse.json({ error: "You already reviewed this order." }, { status: 409 });
 
-  // Build product name from order items
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const productName = (order.order_items as any[])?.map((i: { name: string }) => i.name).join(", ") || "";
 

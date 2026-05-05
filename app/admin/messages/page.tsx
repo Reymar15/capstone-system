@@ -41,55 +41,55 @@ export default function AdminMessages() {
   const { user, token } = useAuth();
   const router = useRouter();
 
-  const [allMessages, setAllMessages] = useState<ChatMsg[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [thread, setThread] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Fetch all users to get names
   const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const userNamesRef = useRef<Record<string, string>>({});
+
+  // Keep ref in sync so fetchAllMessages can use latest names without re-creating
+  useEffect(() => {
+    userNamesRef.current = userNames;
+  }, [userNames]);
 
   const fetchUsers = useCallback(async () => {
     if (!token) return;
     const res = await fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) {
-      const data = await res.json();
-      const map: Record<string, string> = {};
-      for (const u of data) map[u.id] = `${u.firstName} ${u.lastName}`;
-      setUserNames(map);
-    }
+    if (!res.ok) return;
+    const data = await res.json();
+    const map: Record<string, string> = {};
+    for (const u of data) map[u.id] = `${u.firstName} ${u.lastName}`.trim();
+    setUserNames(map);
+    userNamesRef.current = map;
   }, [token]);
 
   const fetchAllMessages = useCallback(async () => {
     if (!token) return;
-    // Fetch all unique user threads by getting all messages
     const res = await fetch("/api/chat/messages?all=1", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return;
+    if (!res.ok) { setLoading(false); return; }
     const data: ChatMsg[] = await res.json();
-    if (!Array.isArray(data)) return;
-    setAllMessages(data);
+    if (!Array.isArray(data)) { setLoading(false); return; }
 
-    // Build conversation list
-    const convMap: Record<string, { msgs: ChatMsg[] }> = {};
+    const names = userNamesRef.current;
+    const convMap: Record<string, ChatMsg[]> = {};
     for (const m of data) {
       const uid = m.sender_id === "admin" ? m.receiver_id : m.sender_id;
-      if (!convMap[uid]) convMap[uid] = { msgs: [] };
-      convMap[uid].msgs.push(m);
+      if (!convMap[uid]) convMap[uid] = [];
+      convMap[uid].push(m);
     }
 
-    const convList: Conversation[] = Object.entries(convMap).map(([uid, { msgs }]) => {
+    const convList: Conversation[] = Object.entries(convMap).map(([uid, msgs]) => {
       const sorted = [...msgs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       const unread = msgs.filter((m) => m.sender_id !== "admin" && !m.is_read).length;
       return {
         userId: uid,
-        userName: userNames[uid] || uid,
+        userName: names[uid] || "User",
         lastMessage: sorted[0]?.message || "",
         lastTime: sorted[0]?.created_at || "",
         unread,
@@ -98,39 +98,39 @@ export default function AdminMessages() {
 
     setConversations(convList);
     setLoading(false);
-  }, [token, userNames]);
+  }, [token]);
 
   const fetchThread = useCallback(async (userId: string) => {
     if (!token) return;
     const res = await fetch(`/api/chat/messages?userId=${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.ok) {
-      const data = await res.json();
-      setThread(Array.isArray(data) ? data : []);
-      // Mark as read
-      await fetch("/api/chat/messages", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ userId }),
-      });
-      setConversations((prev) => prev.map((c) => c.userId === userId ? { ...c, unread: 0 } : c));
-    }
+    if (!res.ok) return;
+    const data = await res.json();
+    setThread(Array.isArray(data) ? data : []);
+    await fetch("/api/chat/messages", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ userId }),
+    });
+    setConversations((prev) => prev.map((c) => c.userId === userId ? { ...c, unread: 0 } : c));
   }, [token]);
 
+  // Initial load
   useEffect(() => {
     if (!user) return;
     if (user.role !== "admin") { router.push("/"); return; }
-    fetchUsers();
-  }, [user, router, fetchUsers]);
+    fetchUsers().then(() => fetchAllMessages());
+  }, [user, router, fetchUsers, fetchAllMessages]);
 
+  // Poll for new messages
   useEffect(() => {
     if (!token) return;
-    fetchAllMessages();
-    pollRef.current = setInterval(fetchAllMessages, 4000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    const t = setInterval(fetchAllMessages, 4000);
+    return () => clearInterval(t);
   }, [token, fetchAllMessages]);
 
+  // Poll active thread
   useEffect(() => {
     if (!activeUserId) return;
     fetchThread(activeUserId);
@@ -200,11 +200,11 @@ export default function AdminMessages() {
               onClick={() => openConversation(c.userId)}
             >
               <div className={msgStyles.convAvatar}>
-                {(userNames[c.userId] || "?")[0].toUpperCase()}
+                {(c.userName || "U")[0].toUpperCase()}
               </div>
               <div className={msgStyles.convInfo}>
                 <div className={msgStyles.convName}>
-                  {userNames[c.userId] || c.userId}
+                  {c.userName}
                   {c.unread > 0 && <span className={msgStyles.unreadBadge}>{c.unread}</span>}
                 </div>
                 <div className={msgStyles.convPreview}>
@@ -212,9 +212,7 @@ export default function AdminMessages() {
                 </div>
               </div>
               <div className={msgStyles.convTime}>
-                {c.lastTime && !isNaN(new Date(c.lastTime).getTime())
-                  ? fmt(c.lastTime)
-                  : ""}
+                {c.lastTime && !isNaN(new Date(c.lastTime).getTime()) ? fmt(c.lastTime) : ""}
               </div>
             </div>
           ))}
@@ -229,18 +227,16 @@ export default function AdminMessages() {
             </div>
           ) : (
             <>
-              {/* CHAT HEADER */}
               <div className={msgStyles.chatHeader}>
                 <div className={msgStyles.chatHeaderAvatar}>
-                  {(userNames[activeUserId] || "?")[0].toUpperCase()}
+                  {(userNames[activeUserId] || "U")[0].toUpperCase()}
                 </div>
                 <div>
-                  <strong>{userNames[activeUserId] || activeUserId}</strong>
-                  <p>User</p>
+                  <strong>{userNames[activeUserId] || activeConv?.userName || activeUserId}</strong>
+                  <p>Customer</p>
                 </div>
               </div>
 
-              {/* MESSAGES */}
               <div className={msgStyles.messages}>
                 {thread.length === 0 && (
                   <div className={msgStyles.emptyThread}>No messages in this conversation yet.</div>
@@ -275,7 +271,6 @@ export default function AdminMessages() {
                 <div ref={bottomRef} />
               </div>
 
-              {/* INPUT */}
               <div className={msgStyles.inputRow}>
                 <textarea
                   className={msgStyles.chatInput}
