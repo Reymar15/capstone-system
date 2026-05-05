@@ -12,6 +12,7 @@ type Message = {
   sender_id: string;
   sender_name: string;
   sender_role: string;
+  recipient_id: string | null;
   message: string;
   created_at: string;
 };
@@ -27,6 +28,7 @@ export default function AdminMessages() {
   const { user, token } = useAuth();
   const router = useRouter();
   const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [conversation, setConversation] = useState<Message[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserThread | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -42,8 +44,12 @@ export default function AdminMessages() {
   }, [user]);
 
   useEffect(() => {
+    if (selectedUser) fetchConversation(selectedUser.id);
+  }, [selectedUser]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [selectedUser, allMessages]);
+  }, [conversation]);
 
   const fetchAll = async () => {
     const res = await fetch("/api/messages", {
@@ -54,7 +60,15 @@ export default function AdminMessages() {
     setLoading(false);
   };
 
-  // Group messages by customer
+  const fetchConversation = async (userId: string) => {
+    const res = await fetch(`/api/messages?userId=${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (Array.isArray(data)) setConversation(data);
+  };
+
+  // Group by unique customer senders
   const threads: UserThread[] = [];
   const seen = new Set<string>();
   [...allMessages].reverse().forEach((msg) => {
@@ -69,21 +83,23 @@ export default function AdminMessages() {
     }
   });
 
-  const conversation = selectedUser
-    ? allMessages.filter((m) => m.sender_id === selectedUser.id || m.sender_role === "admin")
-    : [];
+  const handleSelectUser = (t: UserThread) => {
+    setSelectedUser(t);
+    fetchConversation(t.id);
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !selectedUser) return;
     setSending(true);
     await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ message: input.trim() }),
+      body: JSON.stringify({ message: input.trim(), recipientId: selectedUser.id }),
     });
     setInput("");
     setSending(false);
+    fetchConversation(selectedUser.id);
     fetchAll();
   };
 
@@ -111,7 +127,7 @@ export default function AdminMessages() {
             {threads.map((t) => (
               <div
                 key={t.id}
-                onClick={() => setSelectedUser(t)}
+                onClick={() => handleSelectUser(t)}
                 style={{
                   padding: "14px 20px",
                   cursor: "pointer",
@@ -146,6 +162,9 @@ export default function AdminMessages() {
               </div>
 
               <div className={msgStyles.chatBox} style={{ flex: 1 }}>
+                {conversation.length === 0 && (
+                  <p className={msgStyles.empty}>No messages in this conversation yet.</p>
+                )}
                 {conversation.map((msg) => {
                   const isAdmin = msg.sender_role === "admin";
                   return (

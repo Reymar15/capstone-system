@@ -11,6 +11,7 @@ type Message = {
   sender_id: string;
   sender_name: string;
   sender_role: string;
+  recipient_id: string | null;
   message: string;
   created_at: string;
 };
@@ -48,14 +49,16 @@ export default function MessagesPage() {
     e.preventDefault();
     if (!input.trim()) return;
     setSending(true);
-    await fetch("/api/messages", {
+    const res = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ message: input.trim() }),
     });
-    setInput("");
+    if (res.ok) {
+      setInput("");
+      fetchMessages();
+    }
     setSending(false);
-    fetchMessages();
   };
 
   return (
@@ -73,17 +76,24 @@ export default function MessagesPage() {
             <p className={msgStyles.empty}>No messages yet. Say hello! 👋</p>
           )}
           {messages.map((msg) => {
-            const isMe = msg.sender_id === user?.id && msg.sender_role !== "admin";
+            const isMe = msg.sender_role === "customer" && msg.sender_id === user?.id;
             const isAdmin = msg.sender_role === "admin";
             return (
-              <div key={msg.id} className={`${msgStyles.msgRow} ${isMe ? msgStyles.msgRowRight : msgStyles.msgRowLeft}`}>
+              <div
+                key={msg.id}
+                className={`${msgStyles.msgRow} ${isMe ? msgStyles.msgRowRight : msgStyles.msgRowLeft}`}
+              >
                 {!isMe && (
                   <div className={msgStyles.avatar}>
-                    {isAdmin ? "👑" : msg.sender_name[0].toUpperCase()}
+                    {isAdmin ? "👑" : msg.sender_name[0]?.toUpperCase()}
                   </div>
                 )}
                 <div className={`${msgStyles.bubble} ${isMe ? msgStyles.bubbleMe : isAdmin ? msgStyles.bubbleAdmin : msgStyles.bubbleOther}`}>
-                  {!isMe && <span className={msgStyles.senderName}>{isAdmin ? "Kzen's Support" : msg.sender_name}</span>}
+                  {!isMe && (
+                    <span className={msgStyles.senderName}>
+                      {isAdmin ? "Kzen's Support" : msg.sender_name}
+                    </span>
+                  )}
                   <p>{msg.message}</p>
                   <span className={msgStyles.time}>
                     {new Date(msg.created_at).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" })}
