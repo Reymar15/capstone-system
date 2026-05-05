@@ -8,6 +8,7 @@ import { useToast } from "../context/ToastContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import styles from "../page.module.css";
 import orderStyles from "./order.module.css";
 
@@ -94,9 +95,9 @@ export default function OrderPage() {
   const handlePrint = () => window.print();
 
   return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Navbar />
-      <div className={orderStyles.wrapper}>
+      <div className={orderStyles.wrapper} style={{ flex: 1 }}>
 
         {/* ── RECEIPT ── */}
         {placedOrder ? (
@@ -278,6 +279,7 @@ export default function OrderPage() {
           </>
         )}
       </div>
+      <Footer />
     </div>
   );
 }

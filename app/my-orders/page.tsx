@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import orderStyles from "./my-orders.module.css";
 
 type OrderItem = { name: string; qty: number; price: number };
@@ -117,7 +118,7 @@ export default function MyOrdersPage() {
   const paymentLabel: Record<string, string> = { cod: "Cash on Delivery", gcash: "GCash", maya: "Maya" };
 
   return (
-    <div style={{ background: "#f8f5fa", minHeight: "100vh" }}>
+    <div style={{ background: "#f8f5fa", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Navbar />
 
       <div className={orderStyles.wrapper}>
@@ -245,6 +246,8 @@ export default function MyOrdersPage() {
           })}
         </div>
       </div>
+
+      <Footer />
 
       {/* REVIEW MODAL */}
       {reviewOrder && (

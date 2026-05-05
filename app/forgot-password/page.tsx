@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import authStyles from "../auth.module.css";
 
 type Step = "email" | "answer" | "success";
@@ -197,6 +198,7 @@ export default function ForgotPasswordPage() {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

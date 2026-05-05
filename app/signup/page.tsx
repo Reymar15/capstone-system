@@ -7,6 +7,7 @@ import { User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import authStyles from "../auth.module.css";
 
 export default function SignupPage() {
@@ -118,6 +119,7 @@ export default function SignupPage() {
           </p>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

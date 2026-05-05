@@ -5,6 +5,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import authStyles from "../auth.module.css";
 
 function VerifyForm() {
@@ -128,6 +129,7 @@ export default function VerifyEmailPage() {
           <VerifyForm />
         </Suspense>
       </div>
+      <Footer />
     </div>
   );
 }

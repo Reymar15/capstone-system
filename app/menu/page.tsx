@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import styles from "../page.module.css";
 
 type Product = {
@@ -180,28 +181,7 @@ export default function MenuPage() {
         )}
       </section>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerGrid}>
-          <div>
-            <h3>Puto Bumbong</h3>
-            <p>Authentic Filipino purple rice cakes made with love and tradition.</p>
-          </div>
-          <div>
-            <h4>Quick Links</h4>
-            <p><Link href="/" className={styles.footerLink}>Home</Link></p>
-            <p><Link href="/menu" className={styles.footerLink}>Menu</Link></p>
-            <p><Link href="/about" className={styles.footerLink}>About</Link></p>
-            <p><Link href="/contact" className={styles.footerLink}>Contact</Link></p>
-          </div>
-          <div>
-            <h4>Contact</h4>
-            <p>📞 +63 912345678</p>
-            <p>📧 kzen@example.com</p>
-            <p>📍 Cebu City, Philippines</p>
-          </div>
-        </div>
-        <div className={styles.copyright}>© 2025 Puto Bumbong. All rights reserved.</div>
-      </footer>
+      <Footer />
     </main>
   );
 }

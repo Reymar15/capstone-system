@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import styles from "./contact.module.css";
 
@@ -86,7 +87,7 @@ export default function ContactPage() {
   };
 
   return (
-    <div style={{ background: "#f8f5fa", minHeight: "100vh" }}>
+    <div style={{ background: "#f8f5fa", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Navbar />
 
       <div className={styles.pageWrapper}>
@@ -205,6 +206,8 @@ export default function ContactPage() {
           )}
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

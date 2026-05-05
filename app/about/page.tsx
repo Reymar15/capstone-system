@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import styles from "../page.module.css";
 
 export default function AboutPage() {
@@ -57,29 +57,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <footer className={styles.footer}>
-        <div className={styles.footerGrid}>
-          <div>
-            <h3>🍢 Kzen&apos;s Puto Bumbong</h3>
-            <p>Authentic Filipino purple rice cakes made with love and tradition in Cebu City.</p>
-          </div>
-          <div>
-            <h4>Quick Links</h4>
-            <Link href="/" className={styles.footerLink}>Home</Link>
-            <Link href="/menu" className={styles.footerLink}>Menu</Link>
-            <Link href="/about" className={styles.footerLink}>About</Link>
-            <Link href="/contact" className={styles.footerLink}>Contact</Link>
-          </div>
-          <div>
-            <h4>Contact</h4>
-            <p>📞 +63 912345678</p>
-            <p>📧 kzen@example.com</p>
-            <p>📍 Cebu City, Philippines</p>
-            <p>🕐 Mon–Sun: 7AM – 8PM</p>
-          </div>
-        </div>
-        <div className={styles.copyright}>© 2025 Kzen&apos;s Puto Bumbong. All rights reserved.</div>
-      </footer>
+      <Footer />
     </main>
   );
 }

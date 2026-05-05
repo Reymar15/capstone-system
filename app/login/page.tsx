@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import authStyles from "../auth.module.css";
 
 function LoginForm() {
@@ -84,6 +85,7 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
       </div>
+      <Footer />
     </div>
   );
 }

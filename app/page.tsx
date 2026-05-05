@@ -5,6 +5,7 @@ import Link from "next/link";
 import styles from "./page.module.css";
 import HeroCarousel from "./components/HeroCarousel";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import { useCart } from "./context/CartContext";
 import { useToast } from "./context/ToastContext";
 
@@ -76,43 +77,21 @@ export default function Home() {
         <h2>What Our Customers Say</h2>
         <div className={styles.testimonialGrid}>
           <div className={styles.testimonialCard}>
-            <p>"Best puto bumbong I've ever tasted! Reminds me of my childhood in the province."</p>
+            <p>&quot;Best puto bumbong I&apos;ve ever tasted! Reminds me of my childhood in the province.&quot;</p>
             <h4>— Maria Santos</h4>
           </div>
           <div className={styles.testimonialCard}>
-            <p>"Fresh, authentic, and delivered on time. Highly recommend for any occasion!"</p>
+            <p>&quot;Fresh, authentic, and delivered on time. Highly recommend for any occasion!&quot;</p>
             <h4>— Juan Dela Cruz</h4>
           </div>
           <div className={styles.testimonialCard}>
-            <p>"The deluxe version with cheese is absolutely divine. Will order again!"</p>
+            <p>&quot;The deluxe version with cheese is absolutely divine. Will order again!&quot;</p>
             <h4>— Ana Reyes</h4>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className={styles.footer}>
-        <div className={styles.footerGrid}>
-          <div>
-            <h3>Puto Bumbong</h3>
-            <p>Authentic Filipino purple rice cakes made with love and tradition.</p>
-          </div>
-          <div>
-            <h4>Quick Links</h4>
-            <p><Link href="/" className={styles.footerLink}>Home</Link></p>
-            <p><Link href="/menu" className={styles.footerLink}>Menu</Link></p>
-            <p><Link href="/about" className={styles.footerLink}>About</Link></p>
-            <p><Link href="/contact" className={styles.footerLink}>Contact</Link></p>
-          </div>
-          <div>
-            <h4>Contact</h4>
-            <p>📞 +63 912345678</p>
-            <p>📧 kzen@example.com</p>
-            <p>📍 Cebu City, Philippines</p>
-          </div>
-        </div>
-        <div className={styles.copyright}>© 2025 Puto Bumbong. All rights reserved.</div>
-      </footer>
+      <Footer />
     </main>
   );
 }

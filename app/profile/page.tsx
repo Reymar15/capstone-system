@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import styles from "../page.module.css";
 import profileStyles from "./profile.module.css";
 
@@ -83,14 +84,15 @@ export default function ProfilePage() {
   };
 
   if (loading) return (
-    <div>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <Navbar />
       <div className={profileStyles.loadingBox}>Loading profile...</div>
+      <Footer />
     </div>
   );
 
   return (
-    <div style={{ background: "#f8f5fa", minHeight: "100vh" }}>
+    <div style={{ background: "#f8f5fa", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Navbar />
 
       <div className={profileStyles.wrapper}>
@@ -233,6 +235,8 @@ export default function ProfilePage() {
 
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }
