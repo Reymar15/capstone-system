@@ -1,314 +1,164 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import AdminLayout from "../AdminLayout";
 import styles from "../admin.module.css";
-import m from "./messages.module.css";
+import msgStyles from "../../messages/messages.module.css";
 
-type Msg = {
-  id: string;
+type Message = {
+  id: number;
   sender_id: string;
-  receiver_id: string;
+  sender_name: string;
+  sender_role: string;
   message: string;
-  is_read: boolean;
   created_at: string;
 };
 
-type Conv = {
-  userId: string;
+type UserThread = {
+  id: string;
   name: string;
-  lastMsg: string;
-  lastTime: string;
-  unread: number;
+  lastMessage: string;
+  time: string;
 };
-
-const fmt = (iso: string) =>
-  new Date(iso).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
-
-const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
-
-function showDateDivider(msgs: Msg[], i: number) {
-  if (i === 0) return true;
-  return new Date(msgs[i - 1].created_at).toDateString() !== new Date(msgs[i].created_at).toDateString();
-}
 
 export default function AdminMessages() {
   const { user, token } = useAuth();
   const router = useRouter();
-
-  const [convs, setConvs] = useState<Conv[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [thread, setThread] = useState<Msg[]>([]);
-  const [names, setNames] = useState<Record<string, string>>({});
+  const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserThread | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [loadingConvs, setLoadingConvs] = useState(true);
-  const [loadingThread, setLoadingThread] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const namesRef = useRef<Record<string, string>>({});
-  const activeIdRef = useRef<string | null>(null);
 
-  activeIdRef.current = activeId;
-
-  // ── fetch user names once ──────────────────────────────────
-  const loadNames = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await fetch("/api/admin/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const map: Record<string, string> = {};
-      for (const u of data) map[u.id] = `${u.firstName} ${u.lastName}`.trim();
-      setNames(map);
-      namesRef.current = map;
-    } catch { /* silent */ }
-  }, [token]);
-
-  // ── build conversation list from all messages ──────────────
-  const loadConvs = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await fetch("/api/chat/messages?all=1", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) { setError("Failed to load conversations."); setLoadingConvs(false); return; }
-      const data: Msg[] = await res.json();
-      if (!Array.isArray(data)) { setLoadingConvs(false); return; }
-
-      const map: Record<string, Msg[]> = {};
-      for (const msg of data) {
-        const uid = msg.sender_id === "admin" ? msg.receiver_id : msg.sender_id;
-        if (!map[uid]) map[uid] = [];
-        map[uid].push(msg);
-      }
-
-      const list: Conv[] = Object.entries(map).map(([uid, msgs]) => {
-        const sorted = [...msgs].sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-        return {
-          userId: uid,
-          name: namesRef.current[uid] || "User",
-          lastMsg: sorted[0]?.message || "",
-          lastTime: sorted[0]?.created_at || "",
-          unread: msgs.filter((msg) => msg.sender_id !== "admin" && !msg.is_read).length,
-        };
-      }).sort((a, b) => new Date(b.lastTime).getTime() - new Date(a.lastTime).getTime());
-
-      setConvs(list);
-      setLoadingConvs(false);
-    } catch {
-      setError("Failed to load conversations.");
-      setLoadingConvs(false);
-    }
-  }, [token]);
-
-  // ── fetch thread for active user ───────────────────────────
-  const loadThread = useCallback(async (uid: string) => {
-    if (!token) return;
-    setLoadingThread(true);
-    try {
-      const res = await fetch(`/api/chat/messages?userId=${uid}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      setThread(Array.isArray(data) ? data : []);
-      // mark as read
-      await fetch("/api/chat/messages", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ userId: uid }),
-      });
-      setConvs((prev) => prev.map((c) => c.userId === uid ? { ...c, unread: 0 } : c));
-    } catch { /* silent */ }
-    finally { setLoadingThread(false); }
-  }, [token]);
-
-  // ── initial load ───────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     if (user.role !== "admin") { router.push("/"); return; }
-    loadNames().then(loadConvs);
-  }, [user, router, loadNames, loadConvs]);
+    fetchAll();
+    const interval = setInterval(fetchAll, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
 
-  // ── poll conversations every 5s ────────────────────────────
-  useEffect(() => {
-    if (!token) return;
-    const t = setInterval(loadConvs, 5000);
-    return () => clearInterval(t);
-  }, [token, loadConvs]);
-
-  // ── poll active thread every 3s ────────────────────────────
-  useEffect(() => {
-    if (!activeId) return;
-    const t = setInterval(() => loadThread(activeId), 3000);
-    return () => clearInterval(t);
-  }, [activeId, loadThread]);
-
-  // ── scroll to bottom on new messages ──────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [thread]);
+  }, [selectedUser, allMessages]);
 
-  const openConv = (uid: string) => {
-    setActiveId(uid);
-    setInput("");
-    loadThread(uid);
+  const fetchAll = async () => {
+    const res = await fetch("/api/messages", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (Array.isArray(data)) setAllMessages(data);
+    setLoading(false);
   };
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || !activeId || sending) return;
-    setSending(true);
-    setInput("");
-    try {
-      const res = await fetch("/api/chat/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: text, receiverId: activeId }),
+  // Group messages by customer
+  const threads: UserThread[] = [];
+  const seen = new Set<string>();
+  [...allMessages].reverse().forEach((msg) => {
+    if (msg.sender_role === "customer" && !seen.has(msg.sender_id)) {
+      seen.add(msg.sender_id);
+      threads.push({
+        id: msg.sender_id,
+        name: msg.sender_name,
+        lastMessage: msg.message,
+        time: new Date(msg.created_at).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" }),
       });
-      if (res.ok) {
-        const msg = await res.json();
-        setThread((prev) => [...prev, msg]);
-        setConvs((prev) =>
-          prev.map((c) =>
-            c.userId === activeId ? { ...c, lastMsg: text, lastTime: msg.created_at } : c
-          )
-        );
-      }
-    } catch { /* silent */ }
+    }
+  });
+
+  const conversation = selectedUser
+    ? allMessages.filter((m) => m.sender_id === selectedUser.id || m.sender_role === "admin")
+    : [];
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    setSending(true);
+    await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message: input.trim() }),
+    });
+    setInput("");
     setSending(false);
+    fetchAll();
   };
-
-  const onKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-  };
-
-  const activeConv = convs.find((c) => c.userId === activeId);
-  const totalUnread = convs.reduce((s, c) => s + c.unread, 0);
 
   return (
     <AdminLayout>
       <div className={styles.pageHeader}>
         <div>
           <h1>Messages</h1>
-          <p>
-            {loadingConvs ? "Loading…" : `${convs.length} conversations`}
-            {totalUnread > 0 && ` · ${totalUnread} unread`}
-          </p>
+          <p>{threads.length} customer conversation{threads.length !== 1 ? "s" : ""}</p>
         </div>
       </div>
 
-      {error && (
-        <div className={m.errorBanner}>⚠️ {error}</div>
-      )}
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 20, height: "calc(100vh - 200px)" }}>
 
-      <div className={m.container}>
-        {/* ── CONVERSATION LIST ── */}
-        <div className={m.sidebar}>
-          <div className={m.sidebarHeader}>
-            <span>Conversations</span>
-            {totalUnread > 0 && <span className={m.totalBadge}>{totalUnread}</span>}
+        {/* USER LIST */}
+        <div style={{ background: "white", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 8px rgba(106,27,154,0.08)", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3e5f5", fontWeight: 700, color: "#3b0764", fontSize: "0.9rem" }}>
+            Conversations
           </div>
-
-          <div className={m.convScroll}>
-            {loadingConvs && (
-              <div className={m.sidebarEmpty}>
-                <div className={m.spinner} />
-                <p>Loading…</p>
-              </div>
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {loading && <p style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>Loading...</p>}
+            {!loading && threads.length === 0 && (
+              <p style={{ textAlign: "center", color: "#9ca3af", padding: 24, fontSize: "0.88rem" }}>No messages yet.</p>
             )}
-            {!loadingConvs && convs.length === 0 && (
-              <div className={m.sidebarEmpty}>
-                <span>💬</span>
-                <p>No messages yet</p>
-              </div>
-            )}
-            {convs.map((c) => (
-              <button
-                key={c.userId}
-                className={`${m.convItem} ${activeId === c.userId ? m.convActive : ""}`}
-                onClick={() => openConv(c.userId)}
+            {threads.map((t) => (
+              <div
+                key={t.id}
+                onClick={() => setSelectedUser(t)}
+                style={{
+                  padding: "14px 20px",
+                  cursor: "pointer",
+                  borderBottom: "1px solid #f9fafb",
+                  background: selectedUser?.id === t.id ? "#faf5ff" : "white",
+                  borderLeft: selectedUser?.id === t.id ? "3px solid #7b1fa2" : "3px solid transparent",
+                  transition: "all 0.15s",
+                }}
               >
-                <div className={m.avatar}>{(c.name || "U")[0].toUpperCase()}</div>
-                <div className={m.convMeta}>
-                  <div className={m.convTop}>
-                    <span className={m.convName}>{c.name}</span>
-                    <span className={m.convTime}>
-                      {c.lastTime ? fmt(c.lastTime) : ""}
-                    </span>
-                  </div>
-                  <div className={m.convBottom}>
-                    <span className={m.convPreview}>
-                      {c.lastMsg.length > 38 ? c.lastMsg.slice(0, 38) + "…" : c.lastMsg}
-                    </span>
-                    {c.unread > 0 && <span className={m.badge}>{c.unread}</span>}
-                  </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#1a1a2e" }}>{t.name}</span>
+                  <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>{t.time}</span>
                 </div>
-              </button>
+                <p style={{ margin: 0, fontSize: "0.78rem", color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {t.lastMessage}
+                </p>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* ── CHAT PANEL ── */}
-        <div className={m.chat}>
-          {!activeId ? (
-            <div className={m.empty}>
-              <span>💬</span>
-              <p>Select a conversation to reply</p>
+        {/* CHAT AREA */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {!selectedUser ? (
+            <div style={{ flex: 1, background: "white", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", boxShadow: "0 2px 8px rgba(106,27,154,0.08)" }}>
+              <p>Select a conversation to start chatting</p>
             </div>
           ) : (
             <>
-              {/* header */}
-              <div className={m.chatHeader}>
-                <div className={m.chatAvatar}>
-                  {(names[activeId] || "U")[0].toUpperCase()}
-                </div>
-                <div>
-                  <strong>{names[activeId] || activeConv?.name || activeId}</strong>
-                  <p>Customer</p>
-                </div>
+              <div style={{ background: "white", borderRadius: 16, padding: "14px 20px", boxShadow: "0 2px 8px rgba(106,27,154,0.08)", fontWeight: 700, color: "#3b0764" }}>
+                💬 {selectedUser.name}
               </div>
 
-              {/* messages */}
-              <div className={m.messages}>
-                {loadingThread && (
-                  <div className={m.threadLoading}>
-                    <div className={m.spinner} />
-                  </div>
-                )}
-                {!loadingThread && thread.length === 0 && (
-                  <div className={m.threadEmpty}>No messages yet in this conversation.</div>
-                )}
-                {thread.map((msg, idx) => {
-                  const mine = msg.sender_id === "admin";
+              <div className={msgStyles.chatBox} style={{ flex: 1 }}>
+                {conversation.map((msg) => {
+                  const isAdmin = msg.sender_role === "admin";
                   return (
-                    <div key={msg.id}>
-                      {showDateDivider(thread, idx) && (
-                        <div className={m.dateDivider}>
-                          <span>{fmtDate(msg.created_at)}</span>
-                        </div>
+                    <div key={msg.id} className={`${msgStyles.msgRow} ${isAdmin ? msgStyles.msgRowRight : msgStyles.msgRowLeft}`}>
+                      {!isAdmin && (
+                        <div className={msgStyles.avatar}>{msg.sender_name[0].toUpperCase()}</div>
                       )}
-                      <div className={`${m.row} ${mine ? m.rowMine : m.rowTheirs}`}>
-                        {!mine && (
-                          <div className={m.msgAvatar}>
-                            {(names[msg.sender_id] || "U")[0].toUpperCase()}
-                          </div>
-                        )}
-                        <div className={`${m.bubble} ${mine ? m.bubbleMine : m.bubbleTheirs}`}>
-                          <p>{msg.message}</p>
-                          <span className={m.time}>
-                            {fmt(msg.created_at)}
-                            {mine && <span>{msg.is_read ? " ✓✓" : " ✓"}</span>}
-                          </span>
-                        </div>
+                      <div className={`${msgStyles.bubble} ${isAdmin ? msgStyles.bubbleMe : msgStyles.bubbleOther}`}>
+                        {!isAdmin && <span className={msgStyles.senderName}>{msg.sender_name}</span>}
+                        <p>{msg.message}</p>
+                        <span className={msgStyles.time}>
+                          {new Date(msg.created_at).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
                       </div>
                     </div>
                   );
@@ -316,23 +166,18 @@ export default function AdminMessages() {
                 <div ref={bottomRef} />
               </div>
 
-              {/* input */}
-              <div className={m.inputRow}>
-                <textarea
-                  className={m.input}
-                  placeholder={`Reply to ${activeConv?.name || "user"}…`}
+              <form className={msgStyles.inputRow} onSubmit={handleSend}>
+                <input
+                  type="text"
+                  placeholder={`Reply to ${selectedUser.name}...`}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={onKey}
-                  rows={1}
+                  disabled={sending}
                 />
-                <button className={m.sendBtn} onClick={send} disabled={!input.trim() || sending}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
+                <button type="submit" disabled={sending || !input.trim()}>
+                  {sending ? "..." : "Send"}
                 </button>
-              </div>
+              </form>
             </>
           )}
         </div>

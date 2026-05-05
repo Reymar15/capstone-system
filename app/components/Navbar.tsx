@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, LayoutDashboard, ClipboardList, UserCircle, LogOut } from "lucide-react";
+import { ShoppingCart, LayoutDashboard, ClipboardList, UserCircle, LogOut, MessageCircle } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import styles from "../page.module.css";
@@ -63,6 +63,11 @@ export default function Navbar() {
             {user.role === "customer" && (
               <Link href="/profile" className={styles.iconBtn} title="Profile">
                 <UserCircle size={18} />
+              </Link>
+            )}
+            {user.role === "customer" && (
+              <Link href="/messages" className={styles.iconBtn} title="Messages">
+                <MessageCircle size={18} />
               </Link>
             )}
             <button className={styles.logoutNavBtn} onClick={handleLogout} title="Logout">
