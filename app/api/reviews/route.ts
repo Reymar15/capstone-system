@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   const reviews = data || [];
 
-  // Fetch user names separately to avoid join/RLS issues
+  // Fetch user names separately — avoids join/RLS issues on Vercel
   const userIds = [...new Set(reviews.map((r) => r.user_id).filter(Boolean))];
   const { data: users } = userIds.length
     ? await supabase.from("users").select("id, first_name, last_name").in("id", userIds)
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     id: r.id,
     orderId: r.order_id,
     userId: r.user_id,
-    productName: r.product_name,
+    productName: r.product_name || "—",
     rating: r.rating,
     comment: r.comment,
     createdAt: r.created_at,
@@ -55,12 +55,15 @@ export async function POST(req: NextRequest) {
 
   const { orderId, rating, comment } = await req.json();
   if (!orderId) return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
-  if (!rating || rating < 1 || rating > 5) return NextResponse.json({ error: "Rating must be 1–5." }, { status: 400 });
-  if (!comment?.trim()) return NextResponse.json({ error: "Please write a review." }, { status: 400 });
+  if (!rating || rating < 1 || rating > 5)
+    return NextResponse.json({ error: "Rating must be 1–5." }, { status: 400 });
+  if (!comment?.trim())
+    return NextResponse.json({ error: "Please write a review." }, { status: 400 });
 
+  // Verify order belongs to user and is Completed
   const { data: order } = await supabase
     .from("orders")
-    .select("id, status, user_id, order_items(name)")
+    .select("id, status, user_id, customer_name")
     .eq("id", orderId)
     .single();
 
@@ -69,15 +72,22 @@ export async function POST(req: NextRequest) {
   if (order.status !== "Completed")
     return NextResponse.json({ error: "You can only review completed orders." }, { status: 400 });
 
+  // Check not already reviewed
   const { data: existing } = await supabase
     .from("reviews")
     .select("id")
     .eq("order_id", orderId)
     .maybeSingle();
-  if (existing) return NextResponse.json({ error: "You already reviewed this order." }, { status: 409 });
+  if (existing)
+    return NextResponse.json({ error: "You already reviewed this order." }, { status: 409 });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const productName = (order.order_items as any[])?.map((i: { name: string }) => i.name).join(", ") || "";
+  // Fetch order items separately — avoids join issues on Vercel
+  const { data: orderItems } = await supabase
+    .from("order_items")
+    .select("name")
+    .eq("order_id", orderId);
+
+  const productName = (orderItems || []).map((i) => i.name).join(", ") || "Puto Bumbong";
 
   const { data: inserted, error } = await supabase
     .from("reviews")
