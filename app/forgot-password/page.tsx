@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import styles from "../page.module.css";
+import Navbar from "../components/Navbar";
 import authStyles from "../auth.module.css";
 
 type Step = "email" | "answer" | "success";
@@ -68,22 +68,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className={authStyles.page}>
-      <nav className={styles.navbar}>
-        <Link href="/" className={styles.logoLink}>
-          <h2 className={styles.logo}>Puto Bumbong</h2>
-        </Link>
-        <ul className={styles.navLinks}>
-          <li><Link href="/">Home</Link></li>
-          <li><Link href="/menu">Menu</Link></li>
-          <li><Link href="/about">About</Link></li>
-          <li><Link href="/contact">Contact</Link></li>
-        </ul>
-        <div className={styles.navAuth}>
-          <Link href="/login" className={styles.loginBtn}>Login</Link>
-          <Link href="/signup" className={styles.signupBtn}>Sign Up</Link>
-        </div>
-      </nav>
-
+      <Navbar />
       <div className={authStyles.authWrapper}>
         <div className={authStyles.authCard}>
           <div className={authStyles.authBadge}>🔑</div>

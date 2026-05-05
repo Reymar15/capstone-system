@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { User, Mail, Phone, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import styles from "../page.module.css";
+import Navbar from "../components/Navbar";
 import authStyles from "../auth.module.css";
 
 export default function SignupPage() {
@@ -43,20 +43,7 @@ export default function SignupPage() {
 
   return (
     <div className={authStyles.page}>
-      <nav className={styles.navbar}>
-        <Link href="/" className={styles.logoLink}><h2 className={styles.logo}>Puto Bumbong</h2></Link>
-        <ul className={styles.navLinks}>
-          <li><Link href="/">Home</Link></li>
-          <li><Link href="/menu">Menu</Link></li>
-          <li><Link href="/about">About</Link></li>
-          <li><Link href="/contact">Contact</Link></li>
-        </ul>
-        <div className={styles.navAuth}>
-          <Link href="/login" className={styles.loginBtn}>Login</Link>
-          <Link href="/signup" className={styles.signupBtn}>Sign Up</Link>
-        </div>
-      </nav>
-
+      <Navbar />
       <div className={authStyles.authWrapper}>
         <div className={authStyles.authCard}>
           <div className={authStyles.authBadge}>🎋</div>

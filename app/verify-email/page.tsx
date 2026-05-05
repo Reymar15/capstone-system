@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "../context/ToastContext";
-import styles from "../page.module.css";
+import Navbar from "../components/Navbar";
 import authStyles from "../auth.module.css";
 
 function VerifyForm() {
@@ -122,18 +122,7 @@ function VerifyForm() {
 export default function VerifyEmailPage() {
   return (
     <div className={authStyles.page}>
-      <nav className={styles.navbar}>
-        <Link href="/" className={styles.logoLink}>
-          <h2 className={styles.logo}>Puto Bumbong</h2>
-        </Link>
-        <ul className={styles.navLinks}>
-          <li><Link href="/">Home</Link></li>
-          <li><Link href="/menu">Menu</Link></li>
-          <li><Link href="/about">About</Link></li>
-          <li><Link href="/contact">Contact</Link></li>
-        </ul>
-      </nav>
-
+      <Navbar />
       <div className={authStyles.authWrapper}>
         <Suspense fallback={<div className={authStyles.authCard}><p style={{ textAlign: "center", padding: 40 }}>Loading...</p></div>}>
           <VerifyForm />

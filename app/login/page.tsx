@@ -5,7 +5,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import styles from "../page.module.css";
+import Navbar from "../components/Navbar";
 import authStyles from "../auth.module.css";
 
 function LoginForm() {
@@ -78,19 +78,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className={authStyles.page}>
-      <nav className={styles.navbar}>
-        <Link href="/" className={styles.logoLink}><h2 className={styles.logo}>Puto Bumbong</h2></Link>
-        <ul className={styles.navLinks}>
-          <li><Link href="/">Home</Link></li>
-          <li><Link href="/menu">Menu</Link></li>
-          <li><Link href="/about">About</Link></li>
-          <li><Link href="/contact">Contact</Link></li>
-        </ul>
-        <div className={styles.navAuth}>
-          <Link href="/login" className={styles.loginBtn}>Login</Link>
-          <Link href="/signup" className={styles.signupBtn}>Sign Up</Link>
-        </div>
-      </nav>
+      <Navbar />
       <div className={authStyles.authWrapper}>
         <Suspense fallback={<div className={authStyles.authCard}><p style={{ textAlign: "center", padding: "40px" }}>Loading...</p></div>}>
           <LoginForm />
