@@ -14,11 +14,9 @@ type Order = {
   items: { name: string; qty: number }[];
 };
 
-type Stats = { users: number; messages: number };
-
 const STATUS_COLOR: Record<string, string> = {
-  Pending: "#f59e0b", Preparing: "#3b82f6",
-  Ready: "#8b5cf6", Completed: "#10b981", Cancelled: "#ef4444",
+  Pending: "#f59e0b", Preparing: "#0d9488",
+  Ready: "#8b5cf6", Completed: "#16a34a", Cancelled: "#ef4444",
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -26,25 +24,18 @@ const STATUS_BADGE: Record<string, string> = {
   Ready: styles.badgePurple, Completed: styles.badgeGreen, Cancelled: styles.badgeRed,
 };
 
-const formatOrderDate = (createdAt: string, id: string) => {
-  const fallbackDate = /^\d+$/.test(id) ? new Date(Number(id)) : null;
-  const date = createdAt ? new Date(createdAt) : fallbackDate;
-
-  if (!date || Number.isNaN(date.getTime())) return "No date";
-
-  return date.toLocaleDateString("en-PH", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const formatDate = (createdAt: string, id: string) => {
+  const fallback = /^\d+$/.test(id) ? new Date(Number(id)) : null;
+  const date = createdAt ? new Date(createdAt) : fallback;
+  if (!date || isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 };
 
 export default function AdminDashboard() {
   const { user, token } = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [stats, setStats] = useState<Stats>({ users: 0, messages: 0 });
+  const [userCount, setUserCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,44 +44,45 @@ export default function AdminDashboard() {
     Promise.all([
       fetch("/api/orders", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
       fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
-      fetch("/api/admin/messages", { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
-    ]).then(([ordersData, usersData, messagesData]) => {
-      const sorted = Array.isArray(ordersData) ? ordersData.sort((a: Order, b: Order) => {
-        const aTime = a.createdAt && !isNaN(new Date(a.createdAt).getTime()) ? new Date(a.createdAt).getTime() : 0;
-        const bTime = b.createdAt && !isNaN(new Date(b.createdAt).getTime()) ? new Date(b.createdAt).getTime() : 0;
-        return bTime - aTime;
-      }) : [];
-      setOrders(sorted);
-      setStats({
-        users: Array.isArray(usersData) ? usersData.filter((u: { role: string }) => u.role === "customer").length : 0,
-        messages: Array.isArray(messagesData) ? messagesData.filter((m: { is_read: boolean }) => !m.is_read).length : 0,
-      });
+    ]).then(([ordersData, usersData]) => {
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setUserCount(Array.isArray(usersData) ? usersData.filter((u: { role: string }) => u.role === "customer").length : 0);
     }).finally(() => setLoading(false));
   }, [user, token, router]);
 
-  const totalSales = orders.reduce((s, o) => s + o.total, 0);
-  const pending = orders.filter((o) => o.status === "Pending").length;
+  // ── STATS ──────────────────────────────────────────────────
+  // Total Sales = completed/paid orders only
+  const totalSales = orders
+    .filter((o) => o.status === "Completed" || o.paymentStatus === "Paid")
+    .reduce((s, o) => s + o.total, 0);
+
+  const pending   = orders.filter((o) => o.status === "Pending").length;
   const preparing = orders.filter((o) => o.status === "Preparing").length;
   const completed = orders.filter((o) => o.status === "Completed").length;
 
   const updateStatus = async (id: string, status: string) => {
-    await fetch(`/api/orders/${id}`, {
+    const res = await fetch(`/api/orders/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ status }),
     });
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
+    if (res.ok) {
+      const updated = await res.json();
+      setOrders((prev) => prev.map((o) =>
+        o.id === id ? { ...o, status: updated.status, paymentStatus: updated.payment_status ?? updated.paymentStatus ?? o.paymentStatus } : o
+      ));
+    }
   };
-
-  if (loading) return <div className={styles.loading}>Loading dashboard...</div>;
 
   const recentOrders = [...orders]
     .sort((a, b) => {
-      const aTime = new Date(a.createdAt || Number(a.id)).getTime();
-      const bTime = new Date(b.createdAt || Number(b.id)).getTime();
-      return bTime - aTime;
+      const aT = a.createdAt ? new Date(a.createdAt).getTime() : Number(a.id);
+      const bT = b.createdAt ? new Date(b.createdAt).getTime() : Number(b.id);
+      return bT - aT;
     })
     .slice(0, 8);
+
+  if (loading) return <div className={styles.loading}>Loading dashboard...</div>;
 
   return (
     <AdminLayout>
@@ -144,12 +136,12 @@ export default function AdminDashboard() {
           <div className={dash.statIconBox}>👥</div>
           <div className={dash.statInfo}>
             <p className={dash.statLabel}>Users</p>
-            <h2 className={dash.statValue}>{stats.users}</h2>
+            <h2 className={dash.statValue}>{userCount}</h2>
           </div>
         </div>
       </div>
 
-      {/* RECENT ORDERS TABLE */}
+      {/* RECENT ORDERS */}
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2>Recent Orders</h2>
@@ -175,22 +167,22 @@ export default function AdminDashboard() {
                   <td className={styles.orderId}>#{o.id.slice(-6)}</td>
                   <td><strong>{o.customerName?.trim() || "Customer"}</strong></td>
                   <td style={{ fontSize: "0.8rem", color: "#6b7280", maxWidth: 160 }}>
-                    {o.items.map((i) => `${i.name} x${i.qty}`).join(", ")}
+                    {o.items?.map((i) => `${i.name} x${i.qty}`).join(", ") || "—"}
                   </td>
                   <td className={styles.priceCell}>₱{o.total}</td>
                   <td>
                     <span className={`${styles.badge} ${o.paymentStatus === "Paid" ? styles.badgeGreen : styles.badgeYellow}`}>
-                      {o.paymentStatus}
+                      {o.paymentStatus || "Pending"}
                     </span>
                   </td>
                   <td>
-                    <span className={`${styles.badge} ${STATUS_BADGE[o.status]}`}>
-                      <span className={styles.statusDot} style={{ background: STATUS_COLOR[o.status] }} />
+                    <span className={`${styles.badge} ${STATUS_BADGE[o.status] || styles.badgeYellow}`}>
+                      <span className={styles.statusDot} style={{ background: STATUS_COLOR[o.status] || "#9ca3af" }} />
                       {o.status}
                     </span>
                   </td>
                   <td style={{ fontSize: "0.78rem", color: "#9ca3af", whiteSpace: "nowrap" }}>
-                    {formatOrderDate(o.createdAt, o.id)}
+                    {formatDate(o.createdAt, o.id)}
                   </td>
                   <td>
                     <select
