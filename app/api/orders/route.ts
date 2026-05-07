@@ -41,15 +41,28 @@ export async function POST(req: NextRequest) {
   const errors = validateOrder(body);
   if (hasErrors(errors)) return NextResponse.json({ error: Object.values(errors)[0] }, { status: 400 });
 
+  // ── CHECK STOCK AVAILABILITY (but do NOT deduct yet) ───────
   for (const item of body.items) {
-    const { data: product } = await supabase.from("products").select("stock, name").eq("id", item.productId).single();
-    if (product && product.stock < item.qty) {
-      return NextResponse.json({ error: `Only ${product.stock} pcs of "${product.name}" available.` }, { status: 400 });
+    const { data: products } = await supabase
+      .from("products")
+      .select("stock, name, available")
+      .ilike("name", item.name)
+      .limit(1);
+
+    const product = products?.[0];
+    if (product) {
+      if (!product.available) {
+        return NextResponse.json({ error: `"${item.name}" is currently unavailable.` }, { status: 400 });
+      }
+      if (product.stock < item.qty) {
+        return NextResponse.json({ error: `Only ${product.stock} pcs of "${item.name}" available.` }, { status: 400 });
+      }
     }
   }
 
   const orderId = Date.now().toString();
 
+  // ── INSERT ORDER (stock_deducted = false by default) ───────
   const { error: orderError } = await supabase.from("orders").insert({
     id: orderId,
     user_id: user.id,
@@ -61,10 +74,15 @@ export async function POST(req: NextRequest) {
     total: body.total,
     status: "Pending",
     payment_status: body.payment === "cod" ? "Pending" : "Paid",
+    stock_deducted: false,
   });
 
-  if (orderError) return NextResponse.json({ error: "Failed to place order." }, { status: 500 });
+  if (orderError) {
+    console.error("Order insert error:", orderError);
+    return NextResponse.json({ error: "Failed to place order." }, { status: 500 });
+  }
 
+  // ── INSERT ORDER ITEMS ─────────────────────────────────────
   const orderItems = body.items.map((i: { productId: string; name: string; price: number; qty: number; image: string }) => ({
     order_id: orderId,
     product_id: i.productId,
@@ -75,14 +93,6 @@ export async function POST(req: NextRequest) {
   }));
 
   await supabase.from("order_items").insert(orderItems);
-
-  for (const item of body.items) {
-    const { data: product } = await supabase.from("products").select("stock").eq("id", item.productId).single();
-    if (product) {
-      const newStock = Math.max(0, product.stock - item.qty);
-      await supabase.from("products").update({ stock: newStock, available: newStock > 0 }).eq("id", item.productId);
-    }
-  }
 
   const { data: newOrder } = await supabase
     .from("orders")

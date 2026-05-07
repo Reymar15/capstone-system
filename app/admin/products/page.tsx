@@ -117,6 +117,32 @@ export default function AdminProducts() {
         <button className={styles.primaryBtn} onClick={openAdd}>+ Add Product</button>
       </div>
 
+      {/* LOW STOCK WARNING */}
+      {products.filter((p) => p.stock <= 5 && p.available).length > 0 && (
+        <div style={{ background: "#fef3c7", border: "1.5px solid #fcd34d", borderRadius: 12, padding: "12px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: "1.2rem" }}>⚠️</span>
+          <div>
+            <strong style={{ color: "#92400e", fontSize: "0.9rem" }}>Low Stock Alert</strong>
+            <p style={{ margin: 0, color: "#92400e", fontSize: "0.82rem" }}>
+              {products.filter((p) => p.stock <= 5 && p.available).map((p) => `${p.name} (${p.stock} left)`).join(" · ")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* OUT OF STOCK WARNING */}
+      {products.filter((p) => p.stock === 0).length > 0 && (
+        <div style={{ background: "#fee2e2", border: "1.5px solid #fca5a5", borderRadius: 12, padding: "12px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: "1.2rem" }}>🚫</span>
+          <div>
+            <strong style={{ color: "#991b1b", fontSize: "0.9rem" }}>Out of Stock</strong>
+            <p style={{ margin: 0, color: "#991b1b", fontSize: "0.82rem" }}>
+              {products.filter((p) => p.stock === 0).map((p) => p.name).join(" · ")}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: 16 }}>
         <input
           type="text"
