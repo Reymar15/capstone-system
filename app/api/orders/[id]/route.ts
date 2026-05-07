@@ -44,6 +44,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (body.status) updateData.status = body.status;
   if (body.paymentStatus) updateData.payment_status = body.paymentStatus;
 
+  // Auto-set payment to Paid when order is Completed
+  if (body.status === "Completed") {
+    updateData.payment_status = "Paid";
+  }
+
   // ── STOCK DEDUCTION ON COMPLETED ──────────────────────────
   if (
     body.status === "Completed" &&
